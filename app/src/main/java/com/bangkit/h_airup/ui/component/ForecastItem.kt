@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,8 +45,9 @@ fun ForecastItem(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
+            .height(45.dp)
             .background(color = color)
-            .padding(8.dp)
+            .padding(4.dp)
     ) {
         // Date with two lines
         Column(
@@ -57,14 +60,14 @@ fun ForecastItem(
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Normal
                 ),
-                fontSize = 14.sp
+                fontSize = 12.sp
             )
             Text(
                 text = aqi.date.substring(aqi.date.indexOf(',') + 1).trim(),
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Normal
                 ),
-                fontSize = 14.sp
+                fontSize = 12.sp
             )
         }
 
@@ -81,12 +84,13 @@ fun ForecastItem(
 
             Text(
                 text = aqi.status,
-                maxLines = 2, // Allow up to 2 lines
-                overflow = TextOverflow.Ellipsis, // Allow overflow to the next line
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Normal
+                maxLines = 2,
+                overflow = TextOverflow.Visible,
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Normal,
+                    lineHeight = 12.sp
                 ),
-                fontSize = 16.sp,
+                fontSize = 10.sp,
                 modifier = Modifier
                     .padding(end = 8.dp)
                     .weight(1f)
@@ -94,7 +98,7 @@ fun ForecastItem(
 
             Text(
                 text = aqi.aqiLvl.toString(),
-                fontSize = 16.sp,
+                fontSize = 12.sp,
                 modifier = Modifier
                     .padding(end = 16.dp)
             )
@@ -104,7 +108,7 @@ fun ForecastItem(
                 painter = painterResource(id = R.drawable.hand_waving),
                 contentDescription = "Waving Hand",
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(32.dp)
                     .padding(8.dp)
             )
         }
@@ -114,18 +118,22 @@ fun ForecastItem(
 
         // Weather
         Column(
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Top, // Adjusted vertical arrangement
+            modifier = Modifier.fillMaxHeight()
         ) {
             Image(
                 imageVector = Icons.Default.Add,
                 contentDescription = aqi.weather,
                 modifier = Modifier
-                    .size(24.dp)
-                    .padding(8.dp)
+                    .size(28.dp)
+                    .padding(2.dp)
             )
             Text(
                 text = aqi.weather,
-                fontSize = 12.sp
+                fontSize = 7.sp,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Light
+                ),
             )
         }
     }
@@ -136,7 +144,7 @@ fun ForecastItem(
 @Composable
 fun ForecastItemPreview() {
     val aqi =         Aqi(
-        "Friday, Nov 1",
+        "Wednesday, Nov 1",
         "Unhealthy for some groups",
         96,
         "Rainy"
