@@ -26,17 +26,23 @@ import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.farhan.jetonepiece.ui.navigation.Screen
 
 
 @Composable
 fun WelcomeScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    navController: NavController
 ) {
-    WelcomeContent()
+    WelcomeContent(navController)
 }
 
 @Composable
-fun WelcomeContent() {
+fun WelcomeContent(
+    navController: NavController
+) {
     Column(
         modifier = Modifier
             .padding(8.dp)
@@ -75,7 +81,7 @@ fun WelcomeContent() {
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = { /*TODO*/ },
+            onClick = { navController.navigate(Screen.FormName.route) },
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ),
@@ -113,5 +119,5 @@ fun WelcomeContent() {
 @Preview(showSystemUi = true, device = Devices.PIXEL_4)
 @Composable
 fun WelcomeScreenPreview() {
-    WelcomeContent()
+    WelcomeContent(navController = rememberNavController())
 }

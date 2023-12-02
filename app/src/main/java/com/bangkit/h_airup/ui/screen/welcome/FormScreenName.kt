@@ -16,42 +16,66 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.rememberNavController
+import com.bangkit.h_airup.di.Injection
+import com.bangkit.h_airup.pref.UserPreference
+import com.bangkit.h_airup.ui.ViewModelFactory
+import com.farhan.jetonepiece.ui.navigation.Screen
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 @Composable
 fun FormScreenName(
-    modifier: Modifier = Modifier
+    navController: NavController,
+    modifier: Modifier = Modifier,
+    viewModel: FormViewModel = viewModel(
+        factory = ViewModelFactory(Injection.provideRepository())
+    ),
 ) {
-    FormScreenContent()
+
+    FormScreenContent(navController = navController, viewModel)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
-fun FormScreenContent() {
+fun FormScreenContent(navController: NavController, viewModel: FormViewModel) {
     var expanded by remember { mutableStateOf(false)}
-    var name by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var age by remember { mutableStateOf("") }
+    val userPreference = UserPreference.getInstance(LocalContext.current)
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val coroutineScope = rememberCoroutineScope()
+
 
     val cities = listOf("Bandung", "Malang", "Jakarta")
 
@@ -59,7 +83,10 @@ fun FormScreenContent() {
         modifier = Modifier
             .padding(8.dp)
             .background(MaterialTheme.colorScheme.background)
-            .fillMaxSize(),
+            .fillMaxSize()
+            .clickable {
+                       keyboardController?.hide()
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -84,8 +111,8 @@ fun FormScreenContent() {
 
         // TextField for Name
         TextField(
-            value = name,
-            onValueChange = { name = it },
+            value = viewModel.name,
+            onValueChange = { viewModel.name = it },
             label = { Text("Name") },
             modifier = Modifier
                 .fillMaxWidth()
@@ -96,7 +123,6 @@ fun FormScreenContent() {
                 )
         )
 
-        // Location Box with border and label
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.94f)
@@ -105,32 +131,45 @@ fun FormScreenContent() {
                 .padding(vertical = 16.dp, horizontal = 12.dp)
                 .clickable { expanded = !expanded }
         ) {
-            Text(
-                text = if (location.isBlank()) "Select Location" else location,
-                color = if (location.isBlank()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
-            )
-        }
-
-        // DropdownMenu
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            cities.forEach { city ->
-                DropdownMenuItem( text = {Text(text = city)},
-                    onClick = {
-                        location = city
-                        expanded = false
-                    }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = viewModel.location.ifBlank { "Select Location" },
+                    color = if (viewModel.location.isBlank()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
                 )
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                cities.forEach { city ->
+                    DropdownMenuItem(
+                        text = { Text(text = city) },
+                        onClick = {
+                            viewModel.location = city
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
 
         // TextField for Age
         TextField(
-            value = age,
-            onValueChange = { age = it },
+            value = viewModel.age,
+            onValueChange = { viewModel.age = it },
             label = { Text("Age") },
             modifier = Modifier
                 .fillMaxWidth()
@@ -138,7 +177,12 @@ fun FormScreenContent() {
         )
 
         Button(
-            onClick = { /*TODO*/ },
+            onClick = {
+                coroutineScope.launch {
+                    userPreference.saveUserData(viewModel.name, viewModel.location, viewModel.age.toInt())
+                    navController.navigate(Screen.FormSensi.route)
+                }
+            },
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ),
@@ -173,8 +217,8 @@ fun FormScreenContent() {
     }
 }
 
-@Preview(showSystemUi = true, device = Devices.PIXEL_4)
-@Composable
-fun FormScreenPreview() {
-    FormScreenContent()
-}
+//@Preview(showSystemUi = true, device = Devices.PIXEL_4)
+//@Composable
+//fun FormScreenPreview() {
+//    FormScreenContent(rememberNavController(), view)
+//}
