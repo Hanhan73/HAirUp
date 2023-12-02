@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">H-AirUp</string>
     <string name="greeting">Hello Great People!</string>
+    <string name="menu_home">Home</string>
+    <string name="menu_aqi">AQI</string>
+    <string name="menu_weather">Weather</string>
+
 </resources>
