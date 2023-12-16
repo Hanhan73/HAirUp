@@ -1,5 +1,6 @@
 package com.bangkit.h_airup.ui.screen.welcome
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,7 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Clear
@@ -26,9 +27,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,35 +36,33 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Devices
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.rememberNavController
+import com.bangkit.h_airup.R
 import com.bangkit.h_airup.di.Injection
+import com.bangkit.h_airup.model.UserRequestBody
 import com.bangkit.h_airup.pref.UserPreference
+import com.bangkit.h_airup.retrofit.ApiConfig
 import com.bangkit.h_airup.ui.ViewModelFactory
 import com.farhan.jetonepiece.ui.navigation.Screen
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @Composable
 fun FormScreenSensitivity(
     navController: NavController,
     viewModel: FormViewModel = viewModel(
-        factory = ViewModelFactory(Injection.provideRepository())
+        factory = ViewModelFactory(Injection.provideRepository(LocalContext.current), LocalContext.current)
     ),
 ) {
     FormScreenSensitivityContent(navController, viewModel)
@@ -86,8 +83,8 @@ fun FormScreenSensitivityContent(
     val keyboardController = LocalSoftwareKeyboardController.current
 
 
-    val sensitivities = listOf("asdadf", "sdds", "sdsadsd")
-    val medHistories = listOf("ASADAD", "ADFDF", "ADSFE")
+    val sensitivities = listOf("Pregnant", "Athletes")
+    val medHistories = listOf("Heart Disease", "Lung Disease")
 
     Column(
         modifier = Modifier
@@ -101,11 +98,12 @@ fun FormScreenSensitivityContent(
         verticalArrangement = Arrangement.Center
     ) {
         Image(
-            imageVector = Icons.Default.Clear,
+            painter = painterResource(id = R.drawable.logo),
             contentDescription = "Logo",
             modifier = Modifier
                 .size(250.dp)
                 .padding(8.dp)
+                .clip(CircleShape)
         )
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -179,7 +177,7 @@ fun FormScreenSensitivityContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (viewModel.medHistory.isBlank()) "Select Location" else viewModel.medHistory,
+                    text = if (viewModel.medHistory.isBlank()) "Select Medical History" else viewModel.medHistory,
                     color = if (viewModel.medHistory.isBlank()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
                 )
                 Icon(
@@ -211,14 +209,15 @@ fun FormScreenSensitivityContent(
 
         Button(
             onClick = {
-                coroutineScope.launch {
-                userPreference.getInstance(context).saveMedicalData(viewModel.sensitivity, viewModel.medHistory)
-                navController.navigate(Screen.Home.route){
-                    popUpTo(Screen.Home.route){
-                        inclusive = true
+                    coroutineScope.launch {
+                        userPreference.getInstance(context)
+                            .saveMedicalData(viewModel.sensitivity, viewModel.medHistory)
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) {
+                                inclusive = true
+                            }
                         }
                     }
-                }
                       },
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -274,6 +273,12 @@ fun FormScreenSensitivityContent(
             }
         }
     }
+}
+
+@Composable
+fun showToast(message: String) {
+    val context = LocalContext.current
+    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }
 
 //@Preview(showSystemUi = true, device = Devices.PIXEL_4)

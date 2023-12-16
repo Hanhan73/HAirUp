@@ -101,7 +101,7 @@ fun HAirUpApp(
             }
             composable(Screen.Aqi.route) {
                 AqiScreen(
-
+                    userPreference = UserPreference.getInstance(LocalContext.current)
                 )
             }
             composable(Screen.Weather.route) {

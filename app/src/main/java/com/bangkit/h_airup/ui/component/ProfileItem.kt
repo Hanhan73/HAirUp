@@ -1,6 +1,7 @@
 package com.bangkit.h_airup.ui.component
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,7 +23,8 @@ import com.bangkit.h_airup.ui.theme.HAirUpTheme
 @Composable
 fun ProfileItem(
     name: String,
-    location: String,
+    city: String,
+    province: String,
     modifier: Modifier = Modifier
 ){
     Row(
@@ -40,11 +42,23 @@ fun ProfileItem(
             text = name,
             fontSize = 14.sp)
         Spacer(modifier = Modifier.weight(1f))
-        Text(
-            text = location,
-            fontSize = 12.sp,
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Column(
+            modifier = Modifier
+        ) {
+            Text(
+                text = city,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(end = 16.dp)
+                    .align(Alignment.End)
+            )
+            Text(
+                text = province,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(end = 16.dp)
+                    .align(Alignment.End)
+            )
+        }
+
     }
 }
 
@@ -54,7 +68,8 @@ fun ProfileItemPreview() {
     HAirUpTheme {
         ProfileItem(
             "Monkey D. Luffy",
-            "Bandung, Jawa Barat",
+            "Bandung",
+            "Jawa Barat"
         )
     }
 }

@@ -34,37 +34,38 @@ import com.bangkit.h_airup.HAirUpApp
 import com.bangkit.h_airup.R
 import com.bangkit.h_airup.model.Aqi
 import com.bangkit.h_airup.ui.theme.HAirUpTheme
+import com.bangkit.h_airup.utils.ColorPicker
 
 @Composable
 fun ForecastItem(
     aqi: Aqi,
-    color: Color,
     modifier: Modifier = Modifier
 ) {
+
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .height(45.dp)
-            .background(color = color)
-            .padding(4.dp)
+            .height(55.dp)
+            .background(color = ColorPicker.getAqiColor(aqi.aqiLvl))
+            .padding(6.dp)
     ) {
         // Date with two lines
         Column(
             modifier = Modifier
                 .weight(0.4f)
-                .padding(end = 8.dp)
         ) {
             Text(
                 text = aqi.date.substring(0, aqi.date.indexOf(',')),
-                style = MaterialTheme.typography.titleMedium.copy(
+                style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Normal
                 ),
                 fontSize = 12.sp
             )
             Text(
                 text = aqi.date.substring(aqi.date.indexOf(',') + 1).trim(),
-                style = MaterialTheme.typography.titleMedium.copy(
+                style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Normal
                 ),
                 fontSize = 12.sp
@@ -79,18 +80,16 @@ fun ForecastItem(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .weight(1f)
-                .padding(end = 8.dp)
         ) {
 
             Text(
                 text = aqi.status,
                 maxLines = 2,
                 overflow = TextOverflow.Visible,
-                style = MaterialTheme.typography.headlineMedium.copy(
+                style = MaterialTheme.typography.bodySmall.copy(
                     fontWeight = FontWeight.Normal,
-                    lineHeight = 12.sp
                 ),
-                fontSize = 10.sp,
+                fontSize = 12.sp,
                 modifier = Modifier
                     .padding(end = 8.dp)
                     .weight(1f)
@@ -98,17 +97,18 @@ fun ForecastItem(
 
             Text(
                 text = aqi.aqiLvl.toString(),
-                fontSize = 12.sp,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier
-                    .padding(end = 16.dp)
+                    .padding(end = 8.dp)
             )
 
             // Waving Hand
             Image(
-                painter = painterResource(id = R.drawable.hand_waving),
+                painter = painterResource(id = R.drawable.n01),
                 contentDescription = "Waving Hand",
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(28.dp)
                     .padding(8.dp)
             )
         }
@@ -118,26 +118,27 @@ fun ForecastItem(
 
         // Weather
         Column(
-            verticalArrangement = Arrangement.Top, // Adjusted vertical arrangement
+            verticalArrangement = Arrangement.Top,
             modifier = Modifier.fillMaxHeight()
         ) {
             Image(
                 imageVector = Icons.Default.Add,
                 contentDescription = aqi.weather,
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(24.dp)
                     .padding(2.dp)
             )
             Text(
                 text = aqi.weather,
-                fontSize = 7.sp,
-                style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 10.sp,
+                style = MaterialTheme.typography.bodySmall.copy(
                     fontWeight = FontWeight.Light
                 ),
             )
         }
     }
 }
+
 
 
 @Preview(showBackground = true)
@@ -152,7 +153,6 @@ fun ForecastItemPreview() {
     HAirUpTheme {
         ForecastItem(
             aqi,
-            color = Color.Yellow
         )
     }
 }

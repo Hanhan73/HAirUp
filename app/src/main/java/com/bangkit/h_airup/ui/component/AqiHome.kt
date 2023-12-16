@@ -14,60 +14,53 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bangkit.h_airup.R
 import com.bangkit.h_airup.ui.theme.HAirUpTheme
+import com.bangkit.h_airup.utils.ColorPicker
 
 @Composable
-fun AqiHome (
-    aqiNumber : Int,
-    aqiStatus : String,
+fun AqiHome(
+    aqiNumber: Int?,
+    aqiStatus: String,
     modifier: Modifier = Modifier
-    ){
+) {
 
-    val textColor = getAqiColor(aqiNumber)
 
     Box(
         modifier = modifier
             .width(150.dp)
             .height(130.dp)
-            .background(color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+            .background(color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.9f))
+            .padding(8.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 8.dp, top = 8.dp)
         ) {
             Text(
                 text = "Air Quality Index (AQI)",
                 fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.padding(bottom = 4.dp)
             )
             Text(
                 text = aqiNumber.toString(),
-                fontSize = 48.sp,
-                color = textColor,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = ColorPicker.getAqiColor(aqiNumber),
                 modifier = Modifier.padding(bottom = 4.dp)
             )
             Text(
                 text = aqiStatus,
                 fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onPrimary
             )
-
         }
-    }
-}
-
-@Composable
-private fun getAqiColor(aqiNumber: Int): Color {
-    return when {
-        aqiNumber in 0..50 -> Color.Blue
-        aqiNumber in 51..100 -> Color.Green
-        aqiNumber in 101..150 -> Color.Yellow
-        aqiNumber in 151..200 -> Color.Red
-        else -> Color.Magenta
     }
 }
 

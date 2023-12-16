@@ -56,7 +56,7 @@ fun GreetingItem(
                 fontSize = 14.sp
             )
             Text(
-                text = "Good Morning to You $name!",
+                text = "Good day to you $name!",
                 fontSize = 12.sp
             )
         }
