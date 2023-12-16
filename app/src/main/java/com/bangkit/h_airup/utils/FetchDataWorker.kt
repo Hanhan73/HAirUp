@@ -43,7 +43,7 @@ class FetchDataWorker(
                     apiData.response?.aqi?.indexes?.get(0)?.aqiDisplay,
                     apiData.response?.weather?.weather?.get(0)?.main,
                     city,
-                    apiData.response?.weather?.main?.feelsLike
+                    apiData.response?.weather?.main?.feelsLike!!
                     )
                 Result.success()
             } else {
@@ -58,7 +58,7 @@ class FetchDataWorker(
         }
     }
 
-    private fun createNotification(aqiStatus: String?, aqiNumber: String?, weather: String?, city: Unit, temp: Any?) {
+    private fun createNotification(aqiStatus: String?, aqiNumber: String?, weather: String?, city: Unit, temp: Double) {
 
         val notificationManager =
             applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -70,13 +70,13 @@ class FetchDataWorker(
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
 
-    private fun buildNotification(aqiStatus: String?, aqiNumber: String?, weather: String?, city: Unit, temp: Any?): Notification {
+    private fun buildNotification(aqiStatus: String?, aqiNumber: String?, weather: String?, city: Unit, temp: Double): Notification {
 
-
+        val feelsLike = TempConvert.KelvinToCelsius(temp)
         return NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(R.drawable.aqi_icon)
             .setContentTitle("AQI: $aqiNumber - $weather - $city")
-            .setContentText("$aqiStatus - Feels like " + TempConvert.KelvinToCelsius(temp.toDouble()))
+            .setContentText("$aqiStatus - Feels like ")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
     }

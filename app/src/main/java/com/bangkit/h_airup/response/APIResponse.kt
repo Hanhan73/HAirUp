@@ -186,7 +186,7 @@ data class Main(
 	val seaLevel: Int? = null,
 
 	@field:SerializedName("feels_like")
-	val feelsLike: Any? = null,
+	val feelsLike: Double,
 
 	@field:SerializedName("temp_max")
 	val tempMax: Any? = null
