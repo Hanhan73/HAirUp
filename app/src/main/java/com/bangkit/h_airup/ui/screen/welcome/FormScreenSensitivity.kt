@@ -1,5 +1,6 @@
 package com.bangkit.h_airup.ui.screen.welcome
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,15 +49,17 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.bangkit.h_airup.R
 import com.bangkit.h_airup.di.Injection
+import com.bangkit.h_airup.model.UserEntity
 import com.bangkit.h_airup.model.UserRequestBody
 import com.bangkit.h_airup.pref.UserPreference
 import com.bangkit.h_airup.retrofit.ApiConfig
 import com.bangkit.h_airup.ui.ViewModelFactory
-import com.farhan.jetonepiece.ui.navigation.Screen
+import com.bangkit.h_airup.ui.navigation.Screen
 import kotlinx.coroutines.launch
 
 @Composable
@@ -82,9 +86,10 @@ fun FormScreenSensitivityContent(
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
-
-    val sensitivities = listOf("Pregnant", "Athletes")
+    val status = listOf("Pregnant", "Athletes")
     val medHistories = listOf("Heart Disease", "Lung Disease")
+
+
 
     Column(
         modifier = Modifier
@@ -133,7 +138,7 @@ fun FormScreenSensitivityContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (viewModel.sensitivity.isBlank()) "Select Sensitivity" else viewModel.sensitivity,
+                    text = if (viewModel.sensitivity.isBlank()) "Select Status" else viewModel.sensitivity,
                     color = if (viewModel.sensitivity.isBlank()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
                 )
                 Icon(
@@ -148,7 +153,7 @@ fun FormScreenSensitivityContent(
                 onDismissRequest = { expanded1 = false },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                sensitivities.forEach { sensi ->
+                status.forEach { sensi ->
                     DropdownMenuItem(
                         text = { Text(text = sensi) },
                         onClick = {
@@ -209,20 +214,38 @@ fun FormScreenSensitivityContent(
 
         Button(
             onClick = {
-                    coroutineScope.launch {
-                        userPreference.getInstance(context)
-                            .saveMedicalData(viewModel.sensitivity, viewModel.medHistory)
+                coroutineScope.launch {
+                    val requestBody = UserRequestBody(
+                        nama = userPreference.getInstance(context).getName(),
+                        umur = userPreference.getInstance(context).getAge(),
+                        lokasi = if (userPreference.getInstance(context).getCity() == null) "Kab. Bandung Barat" else userPreference.getInstance(context).getCity(),
+                        status = if (viewModel.sensitivity.isBlank()) null else viewModel.sensitivity,
+                        riwayatPenyakit = if (viewModel.medHistory.isBlank()) null else viewModel.medHistory
+                    )
+
+                    val userId = viewModel.postUser(requestBody)
+                    Log.d("FormScreen", userId.toString())
+
+                    if (!userId.isNullOrBlank()) {
+                        // Save data in user preferences
+                        userPreference.getInstance(context).saveMedicalData(viewModel.sensitivity, viewModel.medHistory)
+                        userPreference.getInstance(context).setIsFirstTime(false)
+                        userPreference.getInstance(context).setUserId(userId)
+
+                        // Continue with navigation or other logic
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Home.route) {
                                 inclusive = true
                             }
                         }
+                    } else {
+                        // Handle error or show a message to the user
                     }
-                      },
+                }
+            },
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ),
-
         ) {
             Text(
                 text = "Finish",
@@ -244,8 +267,32 @@ fun FormScreenSensitivityContent(
             modifier = Modifier
                 .clickable {
                     coroutineScope.launch {
-                    navController.navigate(Screen.Home.route)
-                    userPreference.getInstance(context).setIsFirstTime(false)
+                        val requestBody = UserRequestBody(
+                            nama = userPreference.getInstance(context).getName(),
+                            umur = userPreference.getInstance(context).getAge(),
+                            lokasi = if (userPreference.getInstance(context).getCity() == null) "Kab. Bandung Barat" else userPreference.getInstance(context).getCity(),
+                            status = null,
+                            riwayatPenyakit = null
+                        )
+
+                        val userId = viewModel.postUser(requestBody)
+                        Log.d("FormScreen", userId.toString())
+
+                        if (!userId.isNullOrBlank()) {
+                            // Save data in user preferences
+                            userPreference.getInstance(context).saveMedicalData(viewModel.sensitivity, viewModel.medHistory)
+                            userPreference.getInstance(context).setIsFirstTime(false)
+                            userPreference.getInstance(context).setUserId(userId)
+
+                            // Continue with navigation or other logic
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Home.route) {
+                                    inclusive = true
+                                }
+                            }
+                        } else {
+                            // Handle error or show a message to the user
+                        }
                     }
                 }
                 .padding(top = 8.dp, bottom = 32.dp)
@@ -275,11 +322,6 @@ fun FormScreenSensitivityContent(
     }
 }
 
-@Composable
-fun showToast(message: String) {
-    val context = LocalContext.current
-    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-}
 
 //@Preview(showSystemUi = true, device = Devices.PIXEL_4)
 //@Composable

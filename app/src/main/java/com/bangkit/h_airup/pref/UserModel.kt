@@ -1,11 +1,12 @@
 package com.bangkit.h_airup.pref
 
 data class UserModel(
+    val userId: String = "",
     val name: String = "",
-    val location: String = "",
-    val province: String = "",
     val city: String = "",
-    val provinces: String = "",
+    val province: String = "",
+    val citygps: String = "",
+    val provincegps: String = "",
     val lat: Double = 0.0,
     val lon: Double = 0.0,
     val age: Int = 0,

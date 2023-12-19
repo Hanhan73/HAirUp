@@ -21,7 +21,7 @@ class UserPreference private constructor(private val dataStore: DataStore<Prefer
     suspend fun saveUserData(name: String, location: String, province: String, age: Int) {
         dataStore.edit { preferences ->
             preferences[NAME_KEY] = name
-            preferences[LOCATION_KEY] = location
+            preferences[CITY_KEY] = location
             preferences[PROVINCE_KEY] = province
             preferences[AGE_KEY] = age
         }
@@ -40,10 +40,15 @@ class UserPreference private constructor(private val dataStore: DataStore<Prefer
 
     suspend fun setLocations(city:String, provinces:String, latitude:Double, longitude:Double) {
         dataStore.edit { preferences ->
-            preferences[CITY_KEY] = city
-            preferences[PROVINCES_KEY] = provinces
+            preferences[CITYGPS_KEY] = city
+            preferences[PROVINCEGPS_KEY] = provinces
             preferences[LAT_KEY] = latitude
             preferences[LON_KEY] = longitude
+        }
+    }
+    suspend fun setUserId(userId:String) {
+        dataStore.edit { preferences ->
+            preferences[USERID_KEY] = userId
         }
     }
 
@@ -52,11 +57,12 @@ class UserPreference private constructor(private val dataStore: DataStore<Prefer
     fun getSession(): Flow<UserModel> {
         return dataStore.data.map { preferences ->
             val userModel = UserModel(
+                preferences[USERID_KEY] ?: "",
                 preferences[NAME_KEY] ?: "",
-                preferences[LOCATION_KEY] ?: "",
-                preferences[PROVINCE_KEY] ?: "",
                 preferences[CITY_KEY] ?: "",
-                preferences[PROVINCES_KEY] ?: "",
+                preferences[PROVINCE_KEY] ?: "",
+                preferences[CITYGPS_KEY] ?: "",
+                preferences[PROVINCEGPS_KEY] ?: "",
                 preferences[LAT_KEY] ?: 0.0,
                 preferences[LON_KEY] ?: 0.0,
                 preferences[AGE_KEY] ?: 0,
@@ -66,18 +72,25 @@ class UserPreference private constructor(private val dataStore: DataStore<Prefer
                 preferences[IS_WORKMANAGERSTART_KEY] ?: false
             )
 
-            Log.d("UserPreference", "Retrieved Latitude: ${userModel.lat}, Longitude: ${userModel.lon}")
-
             userModel
         }
     }
 
     suspend fun setIsFirstTime(b: Boolean) {
         dataStore.edit { preferences ->
-            preferences[IS_FIRSTTIME_KEY] = false
+            preferences[IS_FIRSTTIME_KEY] = b
 
         }
     }
+
+    suspend fun isFirstTime(): Boolean {
+        return dataStore.data
+            .map { preferences ->
+                preferences[IS_FIRSTTIME_KEY] ?: true
+            }
+            .first()
+    }
+
 
     fun getStatus() {
         dataStore.data.map { preferences ->
@@ -85,20 +98,53 @@ class UserPreference private constructor(private val dataStore: DataStore<Prefer
         }
     }
 
-    fun getCity() {
-        dataStore.data.map { preferences ->
-            return@map preferences[CITY_KEY]
-        }
+    suspend fun getCity(): String {
+        return dataStore.data
+            .map { preferences ->
+                preferences[CITYGPS_KEY] ?: preferences[CITY_KEY].toString()
+            }
+            .first()
+    }
+
+    suspend fun getUserId(): String {
+        return dataStore.data
+            .map { preferences ->
+                preferences[USERID_KEY] ?: "userid"
+            }
+            .first()
+    }
+
+    suspend fun getProvince(): String {
+        return dataStore.data
+            .map { preferences ->
+                preferences[PROVINCEGPS_KEY] ?: "DefaultProvince"
+            }
+            .first()
+    }
+    suspend fun getName(): String {
+        return dataStore.data
+            .map { preferences ->
+                preferences[NAME_KEY] ?: "DefaultName"
+            }
+            .first()
+    }
+    suspend fun getAge(): Int {
+        return dataStore.data
+            .map { preferences ->
+                preferences[AGE_KEY] ?: 0
+            }
+            .first()
     }
 
 
 
     companion object {
+        private val USERID_KEY = stringPreferencesKey("userid")
         private val NAME_KEY = stringPreferencesKey("name")
-        private val LOCATION_KEY = stringPreferencesKey("location")
+        private val CITY_KEY = stringPreferencesKey("location")
         private val PROVINCE_KEY = stringPreferencesKey("province")
-        private val CITY_KEY = stringPreferencesKey("city")
-        private val PROVINCES_KEY = stringPreferencesKey("provinces")
+        private val CITYGPS_KEY = stringPreferencesKey("city")
+        private val PROVINCEGPS_KEY = stringPreferencesKey("provinces")
         private val LAT_KEY = doublePreferencesKey("lat")
         private val LON_KEY = doublePreferencesKey("lon")
         private val AGE_KEY = intPreferencesKey("age")

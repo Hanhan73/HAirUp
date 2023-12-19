@@ -35,20 +35,25 @@ import com.bangkit.h_airup.ui.navigation.NavigationItem
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.OneTimeWorkRequest
+import androidx.work.PeriodicWorkRequest
+import androidx.work.WorkManager
 import com.bangkit.h_airup.pref.UserPreference
+import com.bangkit.h_airup.ui.navigation.Screen
 import com.bangkit.h_airup.ui.screen.aqi.AqiScreen
 import com.bangkit.h_airup.ui.screen.home.HomeScreen
+import com.bangkit.h_airup.ui.screen.profile.EditProfileScreen
+import com.bangkit.h_airup.ui.screen.profile.ProfileScreen
 import com.bangkit.h_airup.ui.screen.weather.WeatherScreen
 import com.bangkit.h_airup.ui.screen.welcome.FormScreenName
 import com.bangkit.h_airup.ui.screen.welcome.FormScreenSensitivity
 import com.bangkit.h_airup.ui.screen.welcome.WelcomeScreen
 import com.bangkit.h_airup.ui.theme.HAirUpTheme
-import com.farhan.jetonepiece.ui.navigation.Screen
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HAirUpApp(
     modifier: Modifier = Modifier,
@@ -61,15 +66,13 @@ fun HAirUpApp(
     // Retrieve the UserPreference instance
     val userPreference = UserPreference.getInstance(LocalContext.current)
 
-// Use LaunchedEffect to collect the IS_FIRSTTIME_KEY value
+    // Use LaunchedEffect to collect the IS_FIRSTTIME_KEY value
     LaunchedEffect(key1 = userPreference) {
         val isFirstTime = userPreference.getSession()
             .map { it.isFirstTime }
-            .first() // Collect the value once
+            .first()
 
-        // Check if it's the first time
         if (isFirstTime) {
-            // Navigate to the welcome page
             navController.navigate(Screen.Welcome.route) {
                 popUpTo(navController.graph.findStartDestination().id) {
                     saveState = true
@@ -77,12 +80,17 @@ fun HAirUpApp(
                 restoreState = true
             }
         }
-
     }
+
 
     Scaffold(
         bottomBar = {
-            if (currentRoute != Screen.Welcome.route && currentRoute != Screen.FormName.route && currentRoute != Screen.FormSensi.route) {
+            if (currentRoute != Screen.Welcome.route
+                && currentRoute != Screen.FormName.route
+                && currentRoute != Screen.FormSensi.route
+                && currentRoute != Screen.Profile.route
+                && currentRoute != Screen.EditProfile.route
+                ) {
                 BottomBar(navController)
             }
         },
@@ -95,17 +103,36 @@ fun HAirUpApp(
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
-                    userPreference = UserPreference.getInstance(LocalContext.current)
+                    userPreference = UserPreference.getInstance(LocalContext.current),
+                    navController = navController
                 )
 
             }
             composable(Screen.Aqi.route) {
                 AqiScreen(
-                    userPreference = UserPreference.getInstance(LocalContext.current)
+                    userPreference = UserPreference.getInstance(LocalContext.current),
+                    navController = navController
                 )
             }
             composable(Screen.Weather.route) {
-                WeatherScreen()
+                WeatherScreen(
+                    userPreference = UserPreference.getInstance(LocalContext.current),
+                    navController = navController
+                )
+            }
+            composable(Screen.Profile.route){
+                ProfileScreen(
+                    userPreference = UserPreference.getInstance(LocalContext.current),
+                    navController = navController
+
+                )
+            }
+            composable(Screen.EditProfile.route){
+                EditProfileScreen(
+                    userPreference = UserPreference.getInstance(LocalContext.current),
+                    navController = navController
+
+                )
             }
             composable(Screen.FormName.route) {
                 FormScreenName(
@@ -122,6 +149,7 @@ fun HAirUpApp(
         }
     }
 }
+
 
 @Composable
 private fun BottomBar(

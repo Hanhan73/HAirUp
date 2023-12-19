@@ -1,6 +1,7 @@
 package com.bangkit.h_airup.ui.component
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,7 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import com.bangkit.h_airup.HAirUpApp
+import com.bangkit.h_airup.ui.navigation.Screen
 import com.bangkit.h_airup.ui.theme.HAirUpTheme
 
 @Composable
@@ -25,11 +29,13 @@ fun ProfileItem(
     name: String,
     city: String,
     province: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+
 ){
     Row(
         verticalAlignment =Alignment.CenterVertically,
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
     ){
         Image(
             imageVector = Icons.Default.AccountCircle,
@@ -61,6 +67,7 @@ fun ProfileItem(
 
     }
 }
+
 
 @Preview(showBackground = true)
 @Composable

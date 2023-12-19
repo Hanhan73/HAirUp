@@ -6,12 +6,16 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.Location
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -28,7 +32,6 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.PeriodicWorkRequest
 import androidx.work.WorkManager
 import com.bangkit.h_airup.pref.UserPreference
-import com.bangkit.h_airup.ui.screen.welcome.showToast
 import com.bangkit.h_airup.ui.theme.HAirUpTheme
 import com.bangkit.h_airup.utils.FetchDataWorker
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -45,86 +48,45 @@ class MainActivity : ComponentActivity() {
     private val fusedLocationClient: FusedLocationProviderClient by lazy {
         LocationServices.getFusedLocationProviderClient(this as ComponentActivity)
     }
+    private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
+    private var isLocationPermissionGranted = false
+    private var isNotificationPermissionGranted = false
 
-    // Create a launcher for the location permission request
-    private val requestPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) {
-                // Location permission granted, show a confirmation and then request notification permission
-                showToast("Location permission granted. Now let's enable notifications.")
-                requestNotificationPermission()
-            } else {
-                // Permission denied
-                // Handle the case where the user denied the location permission
-                // You might want to show a message or disable location-dependent features
-                // e.g., showPermissionDeniedMessage()
-            }
-        }
+        private fun requestLocationUpdates() {
+            if (isLocationPermissionGranted) {
+                try {
+                    fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+                        location?.let {
+                            lifecycleScope.launch {
+                                try {
+                                    val latitude = it.latitude
+                                    val longitude = it.longitude
+                                    val city = getCityData(latitude, longitude)
+                                    val province = getProvinceData(latitude, longitude)
+                                    Log.d("MAIN", "Latitude: $latitude, Longitude: $longitude, City: $city, Province: $province")
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        userPreference = UserPreference.getInstance(this)
-
-        setContent {
-            HAirUpTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    HAirUpApp()
+                                    userPreference.setLocations(city, province, latitude, longitude)
+                                } catch (e: Exception) {
+                                    Log.e("LocationUpdatesError", "Error during location updates: ${e.message}")
+                                }
+                            }
+                        } ?: Log.e("LocationUpdatesError", "Location is null")
+                    }.addOnFailureListener { e ->
+                        Log.e("LocationUpdatesError", "Error getting location: ${e.message}")
+                    }
+                } catch (e: SecurityException) {
+                    Log.e("LocationUpdatesError", "SecurityException: ${e.message}")
+                    // Handle the case where there's a security exception (e.g., user revokes permission)
+                    Toast.makeText(this, "Location permission revoked", Toast.LENGTH_SHORT).show()
                 }
+            } else {
+                // Handle the case where location permission is not granted
+                Toast.makeText(this, "Location permission not granted", Toast.LENGTH_SHORT).show()
             }
         }
-        if (!isLocationPermissionGranted()) {
-            requestLocationPermission()
-        } else {
-            requestLocationUpdates()
-        }
 
-        val workManager = WorkManager.getInstance(applicationContext)
-        val uniqueWorkName = "fetch_notifications"
 
-        if (workManager.getWorkInfosByTag(uniqueWorkName).get().isEmpty()) {
-            // Schedule a unique OneTimeWorkRequest to trigger the periodic work
-            val oneTimeWorkRequest = OneTimeWorkRequest.Builder(FetchDataWorker::class.java)
-                .addTag(uniqueWorkName)
-                .build()
 
-            workManager.enqueue(oneTimeWorkRequest)
-
-            // Schedule the periodic work
-            val periodicWorkRequest = PeriodicWorkRequest.Builder(
-                FetchDataWorker::class.java,
-                1, TimeUnit.HOURS
-            ).build()
-
-            workManager.enqueueUniquePeriodicWork(
-                "fetch_notifications",
-                ExistingPeriodicWorkPolicy.KEEP,
-                periodicWorkRequest
-            )
-        }
-    }
-
-    private fun requestNotificationPermission() {
-        val notificationManager = NotificationManagerCompat.from(this)
-
-        if (!notificationManager.areNotificationsEnabled()) {
-            // Notifications are disabled, show a confirmation and ask the user to enable them
-            showToast("Please enable notifications for the best experience.")
-            // You can also provide a button or navigate the user to the notification settings page
-            // Example: Open the app settings
-            val intent = Intent().apply {
-                action = android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                data = android.net.Uri.fromParts("package", packageName, null)
-            }
-            startActivity(intent)
-        } else {
-            // Notifications are already enabled
-            showToast("Notifications are already enabled.")
-        }
-    }
     private fun getProvinceData(latitude: Double, longitude: Double): String {
         val geocoder = Geocoder(this)
         val addresses = geocoder.getFromLocation(latitude, longitude, 1)
@@ -153,56 +115,73 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Function to check if the location permission is granted
-    private fun isLocationPermissionGranted(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            this,
-            android.Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-    }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
 
-    private fun requestLocationUpdates() {
-        if (isLocationPermissionGranted()) {
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                return
-            }
-            fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-                location?.let {
-                    lifecycleScope.launch {
-                        try {
-                            val latitude = it.latitude
-                            val longitude = it.longitude
-                            val city = getCityData(latitude, longitude)
-                            val province = getProvinceData(latitude, longitude)
-                            Log.d("MAIN", "Latitude: $latitude, Longitude: $longitude, City: $city, Province: $province")
+        permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){permissions ->
 
-                            userPreference.setLocations(city, province, latitude, longitude)
-                        } catch (e: Exception) {
-                            Log.e("LocationUpdatesError", "Error during location updates: ${e.message}")
-                        }
-                    }
-                } ?: Log.e("LocationUpdatesError", "Location is null")
-            }.addOnFailureListener { e ->
-                Log.e("LocationUpdatesError", "Error getting location: ${e.message}")
+            isLocationPermissionGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: isLocationPermissionGranted
+            isNotificationPermissionGranted = permissions[if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                Manifest.permission.POST_NOTIFICATIONS
+            } else {
+
+            }] ?: isNotificationPermissionGranted
+
+        }
+
+        requestPermissions()
+
+        if (isLocationPermissionGranted){
+            requestLocationUpdates()
+        }
+
+        userPreference = UserPreference.getInstance(this)
+
+        setContent {
+            HAirUpTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    HAirUpApp()
+                }
             }
         }
+
+        // Check and request both location and notification permissions together
     }
 
-    private fun requestLocationPermission() {
-        requestPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+
+
+    private fun requestPermissions(){
+        isLocationPermissionGranted = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        isNotificationPermissionGranted = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+
+        val permissionRequest : MutableList<String> = ArrayList()
+
+        if (!isLocationPermissionGranted){
+            permissionRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+        if (!isNotificationPermissionGranted){
+            permissionRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        if (permissionRequest.isNotEmpty()){
+            permissionLauncher.launch(permissionRequest.toTypedArray())
+        }
+
     }
 
-    private fun showToast(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-    }
+
+
+
 }
+
 
 @Preview(showBackground = true)
 @Composable

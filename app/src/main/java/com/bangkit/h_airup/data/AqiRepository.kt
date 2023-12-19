@@ -7,6 +7,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.bangkit.h_airup.dao.ApiDao
 import com.bangkit.h_airup.database.AppDatabase
 import com.bangkit.h_airup.model.ApiData
+import com.bangkit.h_airup.model.UserEntity
 import com.bangkit.h_airup.response.APIResponse
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -32,6 +33,10 @@ class AqiRepository(private val apiDao: ApiDao) {
 
     suspend fun getLatestAPIResponse(): ApiData? {
         return apiDao.getLatestAPIResponse()
+    }
+
+    suspend fun getUserId(): UserEntity? {
+        return apiDao.getUser()
     }
 
 }

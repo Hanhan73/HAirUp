@@ -13,6 +13,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.bangkit.h_airup.response.PollutantsItem
 import com.bangkit.h_airup.ui.theme.HAirUpTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -20,7 +21,8 @@ import com.bangkit.h_airup.ui.theme.HAirUpTheme
 fun AqiPage(
     aqiNumber: Int?,
     aqiStatus: String,
-    aqiPollutan: Double?,
+    aqiPollutan: String?,
+    pollutants: List<PollutantsItem?>?,
     modifier: Modifier = Modifier
 ) {
     var isDialogVisible by remember { mutableStateOf(false) }
@@ -91,19 +93,33 @@ fun AqiPage(
                     color = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
+
+                // Find the dominant pollutant
+                val dominantPollutant = pollutants?.find { it?.code == aqiPollutan }
+
+                // Display the dominant pollutant and its value
+                if (dominantPollutant != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "${dominantPollutant.concentration?.value}",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Text(
+                            text = "${dominantPollutant.displayName}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                } else {
                     Text(
-                        text = aqiPollutan.toString(),
+                        text = "N/A",
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Text(
-                        text = "pg/m³",
-                        fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
@@ -156,25 +172,14 @@ private fun AQIDialog(
     }
 }
 
-@Composable
-private fun getAqiColor(aqiNumber: Int?): Color {
-    return when {
-        aqiNumber in 0..50 -> Color.Blue
-        aqiNumber in 51..100 -> Color.Green
-        aqiNumber in 101..150 -> Color.Yellow
-        aqiNumber in 151..200 -> Color.Red
-        else -> Color.Magenta
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AqiPagePreview() {
-    HAirUpTheme {
-        AqiPage(
-            aqiNumber = 145,
-            aqiStatus = "Unhealthy",
-            aqiPollutan = 32.6
-        )
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun AqiPagePreview() {
+//    HAirUpTheme {
+//        AqiPage(
+//            aqiNumber = 145,
+//            aqiStatus = "Unhealthy",
+//            aqiPollutan = "pm25"
+//        )
+//    }
+//}

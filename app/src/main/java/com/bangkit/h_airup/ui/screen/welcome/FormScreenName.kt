@@ -1,5 +1,6 @@
 package com.bangkit.h_airup.ui.screen.welcome
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Clear
@@ -31,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -57,11 +61,15 @@ import com.bangkit.h_airup.model.ApiData
 import com.bangkit.h_airup.model.LocationData
 import com.bangkit.h_airup.model.UserRequestBody
 import com.bangkit.h_airup.pref.UserPreference
+import com.bangkit.h_airup.response.UserResponse
 import com.bangkit.h_airup.retrofit.ApiConfig
 import com.bangkit.h_airup.ui.ViewModelFactory
 import com.bangkit.h_airup.ui.component.DropdownField
-import com.farhan.jetonepiece.ui.navigation.Screen
+import com.bangkit.h_airup.ui.navigation.Screen
+import com.bangkit.h_airup.ui.theme.HAirUpTheme
 import kotlinx.coroutines.launch
+import retrofit2.Call
+import retrofit2.Response
 import javax.security.auth.callback.Callback
 
 @Composable
@@ -77,11 +85,20 @@ fun FormScreenName(
 }
 
 @Composable
-fun FormScreenContent(navController: NavController, viewModel: FormViewModel) {
+fun FormScreenContent(navController: NavController, viewModel: FormViewModel = viewModel(
+    factory = ViewModelFactory(Injection.provideRepository(LocalContext.current), LocalContext.current)
+)) {
     var expandedCity by remember { mutableStateOf(false)}
     var expandedProvince by remember { mutableStateOf(false)}
     val userPreference = UserPreference.getInstance(LocalContext.current)
     val coroutineScope = rememberCoroutineScope()
+    var provinceGps = ""
+    var cityGps = ""
+    LaunchedEffect(UserPreference) {
+        provinceGps = userPreference.getProvince()
+        cityGps = userPreference.getCity()
+    }
+    Log.d("FORMSCREENNAME", "$provinceGps + $cityGps")
 
     LazyColumn(
         modifier = Modifier
@@ -125,6 +142,7 @@ fun FormScreenContent(navController: NavController, viewModel: FormViewModel) {
         }
 
         item {
+
             Row {
                 DropdownField(
                     modifier = Modifier
@@ -171,6 +189,7 @@ fun FormScreenContent(navController: NavController, viewModel: FormViewModel) {
                 value = viewModel.age,
                 onValueChange = { viewModel.age = it },
                 label = { Text("Age") },
+                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 16.dp, horizontal = 12.dp)
@@ -191,12 +210,8 @@ fun FormScreenContent(navController: NavController, viewModel: FormViewModel) {
                             viewModel.province,
                             viewModel.age.toInt()
                         )
-                        val requestBody = UserRequestBody(
-                            nama = viewModel.name,
-                            umur =  viewModel.age.toInt(),
-                            lokasi = viewModel.city
-                        )
-//                        val client = ApiConfig.getApiService().postUser(requestBody)
+
+
                         navController.navigate(Screen.FormSensi.route)
                     }
                 },
@@ -238,8 +253,10 @@ fun FormScreenContent(navController: NavController, viewModel: FormViewModel) {
 }
 
 
-@Preview(showSystemUi = true, device = Devices.PIXEL_4)
+@Preview(showBackground = true)
 @Composable
 fun FormScreenPreview() {
-    FormScreenContent(rememberNavController(), viewModel())
+    HAirUpTheme {
+        FormScreenContent(rememberNavController())
+    }
 }

@@ -3,9 +3,13 @@ package com.bangkit.h_airup.ui.component
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
@@ -21,23 +25,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bangkit.h_airup.R
 
 
 @Composable
-fun RecommendationGrid(recommendations: List<String>) {
-    if (recommendations.isNotEmpty()) {
-        LazyColumn(
+fun RecommendationGrid(recommendations: String) {
+    if (recommendations != ""){
+    LazyColumn(
             userScrollEnabled = false
         ) {
-            items(recommendations.chunked(2)) { rowRecommendations ->
-                Row {
-                    rowRecommendations.forEach { recommendation ->
-                        RecommendationItem(recommendation)
-                    }
-                }
+            item {
+
+            RecommendationItem(recommendations)
             }
         }
-    } else {
+    }
+    else {
         EmptyRecommendationMessage()
     }
 }
@@ -47,26 +50,59 @@ private fun RecommendationItem(
     recommend: String,
     modifier: Modifier = Modifier
 ) {
-    // Use your custom row layout here
-    // For simplicity, using a simple Text composable and Icons from Material3
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
     ) {
-        when (recommend) {
-            "Recommendation 1" -> Icon(Icons.Default.Info, contentDescription = null)
-            "Recommendation 2" -> Icon(Icons.Default.Warning, contentDescription = null)
-            "Recommendation 3" -> Icon(Icons.Default.Build, contentDescription = null)
-            "Recommendation 4" -> Icon(Icons.Default.Done, contentDescription = null)
-        }
+        // Component Name
         Text(
             text = recommend,
             modifier = Modifier.padding(8.dp),
-            fontSize = 14.sp,
+            fontSize = 8.sp,
             fontWeight = FontWeight.Normal
         )
+
+        // Icons Row
+        Row(
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.height(200.dp),
+                userScrollEnabled = false) {
+                item {
+                    RecommendIconGrid(
+                        text = "Text 1",
+                        iconRes = R.drawable.weather_icon
+                    )
+                }
+                item {
+                    RecommendIconGrid(
+                        text = "Text 2",
+                        iconRes = R.drawable.d02
+                    )
+                }
+                item {
+                    RecommendIconGrid(
+                        text = "Text 3",
+                        iconRes = R.drawable.d02
+                    )
+                }
+                item {
+                    RecommendIconGrid(
+                        text = "Text 4",
+                        iconRes = R.drawable.d11
+                    )
+                }
+            }
+        }
     }
 }
+
 
 @Composable
 private fun EmptyRecommendationMessage() {

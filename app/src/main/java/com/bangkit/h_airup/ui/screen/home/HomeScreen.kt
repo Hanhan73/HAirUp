@@ -2,12 +2,8 @@
 
 package com.bangkit.h_airup.ui.screen.home
 
-import android.content.Context
-import android.content.Context.LOCATION_SERVICE
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,9 +31,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Devices
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.bangkit.h_airup.R
 import com.bangkit.h_airup.di.Injection
 import com.bangkit.h_airup.model.Aqi
@@ -54,7 +54,9 @@ import com.bangkit.h_airup.ui.component.LoadingScreen
 import com.bangkit.h_airup.ui.component.ProfileItem
 import com.bangkit.h_airup.ui.component.Recommendation
 import com.bangkit.h_airup.ui.component.WeatherHome
+import com.bangkit.h_airup.ui.navigation.Screen
 import com.bangkit.h_airup.utils.TempConvert
+import com.bangkit.h_airup.utils.onProfileItemClick
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.launch
@@ -66,7 +68,8 @@ fun HomeScreen(
     userPreference: UserPreference,
     viewModel: HomeViewModel = viewModel(
         factory = ViewModelFactory(Injection.provideRepository(LocalContext.current), LocalContext.current)
-    )
+    ),
+    navController: NavController
 ) {
     val userModel by userPreference.getSession().collectAsState(initial = UserModel())
     val apiResponse by viewModel.apiResponse.collectAsState()
@@ -75,16 +78,20 @@ fun HomeScreen(
     var city: String
     var province: String
 
-    city = userModel.city
-    province = userModel.provinces
+
+
+    city = userModel.citygps
+    province = userModel.provincegps
 
     if (!viewModel.isGps()) {
-        city = userModel.location
+        city = userModel.city
         province = userModel.province
     }
 
     LaunchedEffect(viewModel) {
-        viewModel.getApiResponse()
+        var userId: String = userModel.userId
+        viewModel.getApiResponse(userId)
+        viewModel.workPeriodic(userId)
     }
 
     // Check the loading state and show the appropriate content
@@ -99,7 +106,8 @@ fun HomeScreen(
             userPreference,
             city,
             province,
-            apiResponse
+            apiResponse,
+            navController
         )
     }
 }
@@ -111,12 +119,11 @@ fun HomeContent(
     userPreference: UserPreference,
     city: String,
     province: String,
-    apiResponse: APIResponse?
+    apiResponse: APIResponse?,
+    navController: NavController
+
 ) {
 
-    LaunchedEffect(userModel, apiResponse) {
-        println("City: ${userModel.city}, Province: ${userModel.provinces}")
-    }
     LazyColumn(
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -133,7 +140,11 @@ fun HomeContent(
                 ProfileItem(
                     name = userModel.name,
                     city = city,
-                    province = province
+                    province = province,
+                    modifier = Modifier.clickable {
+                        onProfileItemClick(navController)
+                    }
+
                 )
                 GreetingItem(
                     name = userModel.name,
@@ -153,12 +164,16 @@ fun HomeContent(
                         modifier = Modifier.padding(end = 8.dp)
                     )
                 }
-            }
+                }
         }
 
         item {
             Recommendation(
-                modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer), userPreference = userPreference)
+                modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer),
+                userPreference = userPreference,
+                generalRecommend = apiResponse?.aqi?.healthRecommendations?.generalPopulation.toString(),
+                rekomendasi = apiResponse?.rekomendasi?.get(0)
+            )
         }
 
         items(aqis) { data ->

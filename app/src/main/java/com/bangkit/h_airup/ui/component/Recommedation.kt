@@ -15,8 +15,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TimeInput
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,9 +32,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bangkit.h_airup.di.Injection
@@ -52,19 +58,16 @@ fun Recommendation(
     userPreference: UserPreference,
     viewModel: FormViewModel = viewModel(
         factory = ViewModelFactory(Injection.provideRepository(LocalContext.current), LocalContext.current)
-    )
+    ),
+    generalRecommend: String?,
+    rekomendasi: String?
+
 ) {
     val pagerState = rememberPagerState(
         pageCount = if (userPreference.getStatus() != null) 4 else 3, // Adjust the number of tabs based on the condition
         initialPage = 0
     )
 
-    val recommendations = listOf(
-        "Recommendation 1",
-        "Recommendation 2",
-        "Recommendation 3",
-        "Recommendation 4"
-    )
 
     var showDialog by remember { mutableStateOf(false) }
     var shouldAnimate by remember { mutableStateOf(true) }
@@ -89,7 +92,7 @@ fun Recommendation(
             state = pagerState,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(150.dp)
+                .height(350.dp)
         ) { page ->
             when (page) {
                 0 -> {
@@ -98,30 +101,9 @@ fun Recommendation(
                             .fillMaxSize()
                             .padding(16.dp)
                     ) {
-                        RecommendationGrid(recommendations = recommendations)
-//
-//
-//                        Button(
-//                            onClick = { showDialog = true },
-//                            modifier = Modifier
-//                                .height(56.dp)
-//                                .fillMaxWidth()
-//                                .background(MaterialTheme.colorScheme.primary)
-//                                .padding(horizontal = 16.dp),
-//                            contentPadding = PaddingValues()
-//                        ) {
-//                            Text(
-//                                text = "Recommend Again",
-//                                color = Color.White,
-//                            )
-//                        }
+                        RecommendationGrid(recommendations = generalRecommend.toString())
                     }
-                    if (showDialog) {
-                        DialogRecommend(
-                            onDismiss = { showDialog = false },
-                            userPreference = userPreference
-                        )
-                    }
+
                 }
                 1 ->
                     if (pagerState.currentPage == 3) {
@@ -130,14 +112,34 @@ fun Recommendation(
                                 .fillMaxSize()
                                 .padding(16.dp)
                         ) {
-                            RecommendationGrid(recommendations = recommendations)
+                            RecommendationGrid(recommendations = generalRecommend.toString())
                         }
                     } else {
-                        ButtonRecommend { showDialog = true }
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = modifier
+                        ) {
+                            // Component Name
+                            Text(
+                                text = rekomendasi.toString(),
+                                modifier = Modifier.padding(8.dp),
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
+
                     }
 
-                2 -> RecommendationGrid(recommendations = listOf())
-                3 -> RecommendationGrid(recommendations = listOf())
+                2 -> ButtonRecommend { showDialog = true }
+                3 -> RecommendationGrid(recommendations = "")
+
+            }
+            if (showDialog) {
+                DialogRecommend(
+                    onDismiss = { showDialog = false },
+                    userPreference = userPreference,
+                    viewModel = viewModel
+                )
             }
         }
         HorizontalPagerIndicator(
@@ -152,6 +154,7 @@ fun Recommendation(
 
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DialogRecommend(
     onDismiss: () -> Unit,
@@ -167,6 +170,8 @@ fun DialogRecommend(
     val sensitivities = listOf("asdadf", "sdds", "sdsadsd")
     val medHistories = listOf("ASADAD", "ADFDF", "ADSFE")
 
+    val timeState = rememberTimePickerState()
+
     Dialog(
         onDismissRequest = { onDismiss() },
         content = {
@@ -179,6 +184,7 @@ fun DialogRecommend(
                     text = "Fill The dropdown",
                     modifier = Modifier.padding(16.dp)
                 )
+
                 DropdownField(
                     label = "Sensitivity",
                     value = viewModel.sensitivity,
@@ -239,9 +245,9 @@ fun DialogRecommend(
 }
 
 
-@Preview(showSystemUi = true, device = Devices.PIXEL_4)
-@Composable
-fun DialogFormPreview() {
-    val userPreference = UserPreference.getInstance(context = LocalContext.current)
-    Recommendation(userPreference = userPreference)
-}
+//@Preview(showSystemUi = true, device = Devices.PIXEL_4)
+//@Composable
+//fun DialogFormPreview() {
+//    val userPreference = UserPreference.getInstance(context = LocalContext.current)
+//    Recommendation(userPreference = userPreference)
+//}

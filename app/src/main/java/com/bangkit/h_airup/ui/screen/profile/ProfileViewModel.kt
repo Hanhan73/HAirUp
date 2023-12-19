@@ -1,25 +1,21 @@
-package com.bangkit.h_airup.ui.screen.welcome
+package com.bangkit.h_airup.ui.screen.profile
 
 import android.content.Context
-import android.location.LocationManager
 import android.util.Log
-import android.widget.Toast
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.bangkit.h_airup.data.AqiRepository
-import com.bangkit.h_airup.database.AppDatabase
-import com.bangkit.h_airup.model.UserEntity
 import com.bangkit.h_airup.model.UserRequestBody
+import com.bangkit.h_airup.pref.UserModel
 import com.bangkit.h_airup.pref.UserPreference
 import com.bangkit.h_airup.response.UserResponse
 import com.bangkit.h_airup.retrofit.ApiConfig
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -27,11 +23,15 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
-
-class FormViewModel(
+class ProfileViewModel(
     private val repository: AqiRepository,
     private val context: Context,
+
 ) : ViewModel() {
+
+
+    private val userPreference = UserPreference.getInstance(context)
+
     var name by mutableStateOf("")
     var city by mutableStateOf("")
     var province by mutableStateOf("")
@@ -40,25 +40,22 @@ class FormViewModel(
     var medHistory by mutableStateOf("")
     var filteredCities by mutableStateOf<List<String>>(emptyList())
 
-    private var _userId = MutableLiveData<String>()
-    val userId: LiveData<String> get() = _userId
-
-    // Callback to notify when userId is available
-    private var userIdCallback: ((String) -> Unit)? = null
-
-    fun setUserIdCallback(callback: (String) -> Unit) {
-        userIdCallback = callback
-        Log.d("FormViewModel", "UserId callback set")
-
+    suspend fun initializeUserData(userPreference: UserPreference) {
+        val userModel = userPreference.getSession().firstOrNull() ?: UserModel()
+        name = userModel.name
+        city = userModel.city
+        province = userModel.province
+        age = userModel.age.toString()
+        sensitivity = userModel.sensitivity
+        medHistory = userModel.medHistory
     }
 
-    private val mLocationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading
 
-    fun isGps(): Boolean = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-
-    suspend fun postUser(requestBody: UserRequestBody): String? {
+    suspend fun putUser(requestBody: UserRequestBody, userId: String): String? {
         return try {
-            val client = ApiConfig.getApiService().postUser(requestBody)
+            val client = ApiConfig.getApiService().putUser(requestBody, userId)
 
             // Use suspendCoroutine to convert the callback-based API call to a suspend function
             val response = suspendCoroutine<Response<UserResponse>> { continuation ->

@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.bangkit.h_airup.R
-import com.farhan.jetonepiece.ui.navigation.Screen
+import com.bangkit.h_airup.ui.navigation.Screen
 
 
 @Composable

@@ -1,9 +1,11 @@
 package com.bangkit.h_airup.response
 
-import com.farhan.jetonepiece.ui.navigation.Screen
+
 import com.google.gson.annotations.SerializedName
 
 data class APIResponse(
+	@field:SerializedName("success")
+	val success: Boolean? = null,
 
 	@field:SerializedName("coordinates")
 	val coordinates: Coordinates? = null,
@@ -12,7 +14,10 @@ data class APIResponse(
 	val weather: Weather? = null,
 
 	@field:SerializedName("aqi")
-	val aqi: Aqi? = null
+	val aqi: Aqi? = null,
+
+	@field:SerializedName("rekomendasi")
+	val rekomendasi: List<String?>? = null
 )
 
 data class PollutantsItem(
@@ -108,19 +113,19 @@ data class Concentration(
 data class Coordinates(
 
 	@field:SerializedName("lng")
-	val lng: Any? = null,
+	val lng: Double,
 
 	@field:SerializedName("lat")
-	val lat: Any? = null
+	val lat: Double
 )
 
 data class Coord(
 
 	@field:SerializedName("lon")
-	val lon: Any? = null,
+	val lon: Double,
 
 	@field:SerializedName("lat")
-	val lat: Any? = null
+	val lat: Double
 )
 
 data class HealthRecommendations(
