@@ -158,12 +158,6 @@ fun EditProfileScreen(
 
     Spacer(modifier = Modifier.height(16.dp))
 
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
         Image(
             painter = painterResource(id = R.drawable.logo),
             contentDescription = "Logo",
@@ -171,8 +165,9 @@ fun EditProfileScreen(
                 .size(250.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primary)
+
         )
-    }
+
 
     Spacer(modifier = Modifier.height(16.dp))
 
