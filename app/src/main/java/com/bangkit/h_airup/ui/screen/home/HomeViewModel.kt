@@ -26,6 +26,8 @@ import com.google.android.gms.location.LocationServices
 import com.bangkit.h_airup.model.LocationModel
 import com.bangkit.h_airup.pref.UserPreference
 import com.bangkit.h_airup.response.APIResponse
+import com.bangkit.h_airup.response.ForecastResponse
+import com.bangkit.h_airup.response.TestResponse
 import com.bangkit.h_airup.retrofit.ApiConfig
 import com.bangkit.h_airup.utils.FetchDataWorker
 import com.google.gson.JsonSyntaxException
@@ -53,10 +55,19 @@ class HomeViewModel(
     private val _apiResponse = MutableStateFlow<APIResponse?>(null)
     val apiResponse: StateFlow<APIResponse?> = _apiResponse
 
+    private val _forecastResponse = MutableStateFlow<ForecastResponse?>(null)
+    val forecastResponse: StateFlow<ForecastResponse?> = _forecastResponse
+
+    private val _testResponse = MutableStateFlow<TestResponse?>(null)
+    val testResponse: StateFlow<TestResponse?> = _testResponse
+
     private val mLocationManager = context.getSystemService(LOCATION_SERVICE) as LocationManager
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    private val _isLoadingForecast = MutableStateFlow(true)
+    val isLoadingForecast: StateFlow<Boolean> = _isLoadingForecast
 
     private val dao: ApiDao = AppDatabase.getInstance(context).apiResponseDao()
 
@@ -124,6 +135,65 @@ class HomeViewModel(
         } catch (t: Throwable) {
             Log.e("HOMEVIEWMODEL", "onFailure: ${t.message}")
             _isLoading.value = false
+        }
+    }
+    suspend fun getForecastResponse() {
+        try {
+            val forecastResponse = suspendCancellableCoroutine<ForecastResponse> { continuation ->
+                val client = ApiConfig.getApiService().getForecast()
+                client.enqueue(object : Callback<ForecastResponse> {
+                    override fun onResponse(call: Call<ForecastResponse>, response: Response<ForecastResponse>) {
+                        response.body()?.let { continuation.resume(it) }
+                    }
+
+                    override fun onFailure(call: Call<ForecastResponse>, t: Throwable) {
+                        continuation.resumeWithException(t)
+                    }
+                })
+
+                // This block will be executed if the coroutine is cancelled
+                continuation.invokeOnCancellation {
+                    client.cancel()
+                }
+            }
+
+            _forecastResponse.value = forecastResponse
+            _isLoadingForecast.value = false
+        } catch (e: JsonSyntaxException) {
+            Log.e("HOMEVIEWMODEL", "JsonSyntaxException: ${e.message}")
+        } catch (t: Throwable) {
+            Log.e("HOMEVIEWMODEL", "onFailure: ${t.message}")
+            _isLoadingForecast.value = false
+        }
+    }
+    suspend fun getTestResponse() {
+        try {
+            val testResponse = suspendCancellableCoroutine<TestResponse> { continuation ->
+                val client = ApiConfig.getApiService().getTest()
+                client.enqueue(object : Callback<TestResponse> {
+                    override fun onResponse(call: Call<TestResponse>, response: Response<TestResponse>) {
+                        response.body()?.let { continuation.resume(it) }
+                    }
+
+                    override fun onFailure(call: Call<TestResponse>, t: Throwable) {
+                        continuation.resumeWithException(t)
+                    }
+                })
+
+                // This block will be executed if the coroutine is cancelled
+                continuation.invokeOnCancellation {
+                    client.cancel()
+                }
+            }
+
+
+            _testResponse.value = testResponse
+            _isLoadingForecast.value = false
+        } catch (e: JsonSyntaxException) {
+            Log.e("HOMEVIEWMODEL", "JsonSyntaxException: ${e.message}")
+        } catch (t: Throwable) {
+            Log.e("HOMEVIEWMODEL", "onFailure: ${t.message}")
+            _isLoadingForecast.value = false
         }
     }
 }

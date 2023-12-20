@@ -1,6 +1,13 @@
 package com.bangkit.h_airup.ui.screen.profile
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.MediaStore
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,6 +28,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Done
@@ -37,16 +45,20 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -59,8 +71,11 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ComponentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import coil.compose.rememberImagePainter
 import com.bangkit.h_airup.R
 import com.bangkit.h_airup.di.Injection
 import com.bangkit.h_airup.model.LocationData
@@ -71,7 +86,10 @@ import com.bangkit.h_airup.ui.ViewModelFactory
 import com.bangkit.h_airup.ui.component.DropdownField
 import com.bangkit.h_airup.ui.navigation.Screen
 import com.bangkit.h_airup.utils.onProfileItemClick
+import com.bangkit.h_airup.utils.uriToFile
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,262 +112,323 @@ fun EditProfileScreen(
     var provinceGps = ""
     var cityGps = ""
 
-    val context = LocalContext.current
-    val userModel by userPreference.getSession().collectAsState(initial = UserModel())
     val status = listOf("Pregnant", "Athletes")
     val medHistories = listOf("Heart Disease", "Lung Disease")
     val userPreference = UserPreference.getInstance(LocalContext.current)
     val coroutineScope = rememberCoroutineScope()
 
+    val context = LocalContext.current
+
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = {
+            selectedImageUri = it
+        })
+
+
     LaunchedEffect(key1 = viewModel) {
         viewModel.initializeUserData(userPreference)
     }
 
-    TopAppBar(
-        title = {
-            Text(
-                text = "",
-                style = MaterialTheme.typography.headlineSmall
-            )
-        },
-        navigationIcon = {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = null)
-            }
-        },
-        actions = {
-            IconButton(onClick = {
-                coroutineScope.launch {
-                    userPreference.saveUserData(
-                        viewModel.name,
-                        viewModel.city,
-                        viewModel.province,
-                        viewModel.age.toInt()
-                    )
-                    userPreference.saveMedicalData(viewModel.sensitivity, viewModel.medHistory)
-                    val requestBody = UserRequestBody(
-                        nama = viewModel.name,
-                        umur = viewModel.age.toInt(),
-                        lokasi = userPreference.getCity(),
-                        status = viewModel.sensitivity,
-                        riwayatPenyakit = viewModel.medHistory
-                    )
-                    val userId = userPreference.getUserId()
-
-                    val response = viewModel.putUser(requestBody, userId)
-
-                    Log.d("EditProfile", response.toString())
-                }
-
-                onProfileItemClick(navController)
-            }) {
-                Icon(imageVector = Icons.Default.Done, contentDescription = null)
-            }
-        },
-    )
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    Text(
-        text = stringResource(id = R.string.profile_title),
-        style = MaterialTheme.typography.headlineSmall,
-        color = MaterialTheme.colorScheme.primary // Set the text color
-    )
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-        Image(
-            painter = painterResource(id = R.drawable.logo),
-            contentDescription = "Logo",
-            modifier = Modifier
-                .size(250.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary)
-
-        )
-
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    LazyColumn(
-        modifier = modifier
+    Box(
+        modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
+
     ) {
-
-        item {
-            TextField(
-                value = viewModel.name,
-                onValueChange = { viewModel.name = it },
-                label = { Text("Name") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp, horizontal = 12.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(12.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            // TopAppBar
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "",
+                        style = MaterialTheme.typography.headlineSmall
                     )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = null)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        coroutineScope.launch {
+                            userPreference.saveUserData(
+                                viewModel.name,
+                                viewModel.city,
+                                viewModel.province,
+                                viewModel.age.toInt()
+                            )
+                            userPreference.saveMedicalData(
+                                viewModel.sensitivity,
+                                viewModel.medHistory
+                            )
+                            val selectedImageFile = selectedImageUri?.let { uriToFile(context, it) }
+                            val requestBody = UserRequestBody(
+                                nama = viewModel.name,
+                                umur = viewModel.age.toInt(),
+                                lokasi = userPreference.getCity(),
+                                selectedImageFile,
+                                status = viewModel.sensitivity,
+                                riwayatPenyakit = viewModel.medHistory
+                            )
+                            val userId = userPreference.getUserId()
+
+
+
+                            val response = viewModel.putUser(requestBody, userId)
+
+                            Log.d("EditProfile", response.toString())
+                        }
+
+                        onProfileItemClick(navController)
+                    }) {
+                        Icon(imageVector = Icons.Default.Done, contentDescription = null)
+                    }
+                },
             )
-        }
 
-        item {
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Row {
-                DropdownField(
-                    modifier = Modifier
-                        .width(200.dp)
-                        .padding(start = 8.dp),
-                    label = "Province",
-                    value = viewModel.province,
-                    expanded = expandedProvince,
-                    items = LocationData.locationData.map { it.province }.distinct(),
-                    onValueChange = { selectedProvince ->
-                        viewModel.province = selectedProvince
-                        viewModel.filteredCities = LocationData.locationData
-                            .filter { it.province == selectedProvince }
-                            .flatMap { it.city }
-                            .distinct()
-                        viewModel.city = ""
-                    },
-                    onExpand = { expandedProvince = true },
-                    onClose = { expandedProvince = false }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-
-                DropdownField(
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .width(200.dp),
-                    label = "City",
-                    value = viewModel.city,
-                    expanded = expandedCity,
-                    items = viewModel.filteredCities,
-                    onValueChange = { selectedCity ->
-                        viewModel.city = selectedCity
-                    },
-                    onExpand = { expandedCity = true },
-                    onClose = { expandedCity = false }
-                )
-            }
-        }
-
-        item {
-            TextField(
-                value = viewModel.age,
-                onValueChange = { viewModel.age = it },
-                label = { Text("Age") },
-                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp, horizontal = 12.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(12.dp)
-                    )
+            Text(
+                text = stringResource(id = R.string.profile_title),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary // Set the text color
             )
-        }
 
-        item {
+            Spacer(modifier = Modifier.height(16.dp))
+
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.94f)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .border(
-                        1.dp,
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.shapes.small
-                    )
-                    .padding(vertical = 16.dp, horizontal = 12.dp)
-                    .clickable { expanded1 = !expanded1 }
+                    .fillMaxWidth()
+                    .height(250.dp)
+                    .background(MaterialTheme.colorScheme.background)
+                    .clickable {
+                        // Launch the image picker
+                        pickImageLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (viewModel.sensitivity.isBlank()) "Select Status" else viewModel.sensitivity,
-                        color = if (viewModel.sensitivity.isBlank()) MaterialTheme.colorScheme.onSurface.copy(
-                            alpha = 0.6f
-                        ) else MaterialTheme.colorScheme.onSurface
+                if (selectedImageUri != null) {
+                    // Display the selected image using Coil
+                    AsyncImage(
+                        model = selectedImageUri,
+                        contentDescription = "Selected Image",
+                        modifier = Modifier
+                            .size(250.dp)
+                            .clip(CircleShape)
+                            .align(Alignment.Center)
                     )
+                } else {
+                    // Display a placeholder or some UI for selecting an image
                     Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
+                        imageVector = Icons.Default.AccountCircle,
                         contentDescription = null,
                         modifier = Modifier.size(24.dp)
                     )
                 }
-
-                DropdownMenu(
-                    expanded = expanded1,
-                    onDismissRequest = { expanded1 = false },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    status.forEach { sensi ->
-                        DropdownMenuItem(
-                            text = { Text(text = sensi) },
-                            onClick = {
-                                viewModel.sensitivity = sensi
-                                expanded1 = false
-                            }
-                        )
-                    }
-                }
             }
+
             Spacer(modifier = Modifier.height(16.dp))
-        }
 
-        item {
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.94f)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
-                    .padding(vertical = 16.dp, horizontal = 12.dp)
-                    .clickable { expanded2 = !expanded2 }
+            LazyColumn(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (viewModel.medHistory.isBlank()) "Select Medical History" else viewModel.medHistory,
-                        color = if (viewModel.medHistory.isBlank()) MaterialTheme.colorScheme.onSurface.copy(
-                            alpha = 0.6f
-                        ) else MaterialTheme.colorScheme.onSurface
-                    )
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
+
+                item {
+                    TextField(
+                        value = viewModel.name,
+                        onValueChange = { viewModel.name = it },
+                        label = { Text("Name") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp, horizontal = 12.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(12.dp)
+                            )
                     )
                 }
 
-                DropdownMenu(
-                    expanded = expanded2,
-                    onDismissRequest = { expanded2 = false },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    medHistories.forEach { med ->
-                        DropdownMenuItem(
-                            text = { Text(text = med) },
-                            onClick = {
-                                viewModel.medHistory = med
-                                expanded2 = false
-                            }
+                item {
+
+                    Row {
+                        DropdownField(
+                            modifier = Modifier
+                                .width(200.dp)
+                                .padding(start = 8.dp),
+                            label = "Province",
+                            value = viewModel.province,
+                            expanded = expandedProvince,
+                            items = LocationData.locationData.map { it.province }.distinct(),
+                            onValueChange = { selectedProvince ->
+                                viewModel.province = selectedProvince
+                                viewModel.filteredCities = LocationData.locationData
+                                    .filter { it.province == selectedProvince }
+                                    .flatMap { it.city }
+                                    .distinct()
+                                viewModel.city = ""
+                            },
+                            onExpand = { expandedProvince = true },
+                            onClose = { expandedProvince = false }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        DropdownField(
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .width(200.dp),
+                            label = "City",
+                            value = viewModel.city,
+                            expanded = expandedCity,
+                            items = viewModel.filteredCities,
+                            onValueChange = { selectedCity ->
+                                viewModel.city = selectedCity
+                            },
+                            onExpand = { expandedCity = true },
+                            onClose = { expandedCity = false }
                         )
                     }
                 }
+
+                item {
+                    TextField(
+                        value = viewModel.age,
+                        onValueChange = { viewModel.age = it },
+                        label = { Text("Age") },
+                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp, horizontal = 12.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                    )
+                }
+
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.94f)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.shapes.small
+                            )
+                            .padding(vertical = 16.dp, horizontal = 12.dp)
+                            .clickable { expanded1 = !expanded1 }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (viewModel.sensitivity.isBlank()) "Select Status" else viewModel.sensitivity,
+                                color = if (viewModel.sensitivity.isBlank()) MaterialTheme.colorScheme.onSurface.copy(
+                                    alpha = 0.6f
+                                ) else MaterialTheme.colorScheme.onSurface
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = expanded1,
+                            onDismissRequest = { expanded1 = false },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            status.forEach { sensi ->
+                                DropdownMenuItem(
+                                    text = { Text(text = sensi) },
+                                    onClick = {
+                                        viewModel.sensitivity = sensi
+                                        expanded1 = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                item {
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.94f)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.shapes.small
+                            )
+                            .padding(vertical = 16.dp, horizontal = 12.dp)
+                            .clickable { expanded2 = !expanded2 }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (viewModel.medHistory.isBlank()) "Select Medical History" else viewModel.medHistory,
+                                color = if (viewModel.medHistory.isBlank()) MaterialTheme.colorScheme.onSurface.copy(
+                                    alpha = 0.6f
+                                ) else MaterialTheme.colorScheme.onSurface
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = expanded2,
+                            onDismissRequest = { expanded2 = false },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            medHistories.forEach { med ->
+                                DropdownMenuItem(
+                                    text = { Text(text = med) },
+                                    onClick = {
+                                        viewModel.medHistory = med
+                                        expanded2 = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
+
+
 }
+
+

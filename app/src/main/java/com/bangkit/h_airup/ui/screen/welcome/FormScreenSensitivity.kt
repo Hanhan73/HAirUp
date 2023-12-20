@@ -220,7 +220,8 @@ fun FormScreenSensitivityContent(
                         umur = userPreference.getInstance(context).getAge(),
                         lokasi = if (userPreference.getInstance(context).getCity() == null) "Kab. Bandung Barat" else userPreference.getInstance(context).getCity(),
                         status = if (viewModel.sensitivity.isBlank()) null else viewModel.sensitivity,
-                        riwayatPenyakit = if (viewModel.medHistory.isBlank()) null else viewModel.medHistory
+                        riwayatPenyakit = if (viewModel.medHistory.isBlank()) null else viewModel.medHistory,
+                        image = null
                     )
 
                     val userId = viewModel.postUser(requestBody)
@@ -272,7 +273,8 @@ fun FormScreenSensitivityContent(
                             umur = userPreference.getInstance(context).getAge(),
                             lokasi = if (userPreference.getInstance(context).getCity() == null) "Kab. Bandung Barat" else userPreference.getInstance(context).getCity(),
                             status = null,
-                            riwayatPenyakit = null
+                            riwayatPenyakit = null,
+                            image = null
                         )
 
                         val userId = viewModel.postUser(requestBody)

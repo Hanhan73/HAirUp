@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -46,9 +47,12 @@ import com.bangkit.h_airup.model.LocationData
 import com.bangkit.h_airup.pref.UserModel
 import com.bangkit.h_airup.pref.UserPreference
 import com.bangkit.h_airup.response.APIResponse
+import com.bangkit.h_airup.response.ForecastResponse
+import com.bangkit.h_airup.response.TestResponse
 import com.bangkit.h_airup.ui.ViewModelFactory
 import com.bangkit.h_airup.ui.component.AqiHome
-import com.bangkit.h_airup.ui.component.ForecastItem
+import com.bangkit.h_airup.ui.component.ForecastTable
+import com.bangkit.h_airup.ui.component.forecastItem
 import com.bangkit.h_airup.ui.component.GreetingItem
 import com.bangkit.h_airup.ui.component.LoadingScreen
 import com.bangkit.h_airup.ui.component.ProfileItem
@@ -73,6 +77,7 @@ fun HomeScreen(
 ) {
     val userModel by userPreference.getSession().collectAsState(initial = UserModel())
     val apiResponse by viewModel.apiResponse.collectAsState()
+
     val isLoading by viewModel.isLoading.collectAsState()
 
     var city: String
@@ -92,6 +97,8 @@ fun HomeScreen(
         var userId: String = userModel.userId
         viewModel.getApiResponse(userId)
         viewModel.workPeriodic(userId)
+        viewModel.getTestResponse()
+        viewModel.getForecastResponse()
     }
 
     // Check the loading state and show the appropriate content
@@ -102,12 +109,12 @@ fun HomeScreen(
         // Data has loaded, show the content
         HomeContent(
             userModel = userModel,
-            aqis = AqiData.aqis,
             userPreference,
             city,
             province,
             apiResponse,
-            navController
+            navController,
+            viewModel
         )
     }
 }
@@ -115,15 +122,21 @@ fun HomeScreen(
 @Composable
 fun HomeContent(
     userModel: UserModel,
-    aqis: List<Aqi>,
     userPreference: UserPreference,
     city: String,
     province: String,
     apiResponse: APIResponse?,
-    navController: NavController
+    navController: NavController,
+    viewModel: HomeViewModel
 
 ) {
+    val isLoadingForecast by viewModel.isLoadingForecast.collectAsState()
+    val forecastResponse by viewModel.forecastResponse.collectAsState()
 
+    LaunchedEffect(viewModel) {
+        viewModel.getTestResponse()
+        viewModel.getForecastResponse()
+    }
     LazyColumn(
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -134,7 +147,10 @@ fun HomeContent(
         item {
             Column(
                 modifier = Modifier
-                    .paint(painterResource(id = R.drawable.clear_background), contentScale = ContentScale.FillBounds)
+                    .paint(
+                        painterResource(id = R.drawable.clear_background),
+                        contentScale = ContentScale.FillBounds
+                    )
                     .padding(bottom = 16.dp, top = 40.dp)
             ) {
                 ProfileItem(
@@ -152,19 +168,21 @@ fun HomeContent(
                 )
                 Row {
                     AqiHome(
-                        aqiNumber = apiResponse?.aqi?.indexes?.get(0)?.aqi as? Int ?: 0,
+                        aqiNumber = apiResponse?.aqi?.indexes?.get(0)?.aqi,
                         aqiStatus = apiResponse?.aqi?.indexes?.get(0)?.category.toString(),
                         modifier = Modifier
                             .weight(1f)
                             .padding(start = 8.dp, end = 8.dp)
                     )
                     WeatherHome(
-                        temp = TempConvert.KelvinToCelsius(apiResponse?.weather?.main?.temp as? Double ?: 0.0),
+                        temp = TempConvert.KelvinToCelsius(
+                            apiResponse?.weather?.main?.temp as? Double ?: 0.0
+                        ),
                         status = apiResponse?.weather?.weather?.get(0)?.description.toString(),
                         modifier = Modifier.padding(end = 8.dp)
                     )
                 }
-                }
+            }
         }
 
         item {
@@ -176,12 +194,24 @@ fun HomeContent(
             )
         }
 
-        items(aqis) { data ->
+        item {
+            if (isLoadingForecast) {
+                Box(
+                    modifier = Modifier
+                        .height(500.dp)
+                        .fillMaxWidth()
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(50.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }else{
+                ForecastTable(forecastResponse = forecastResponse)
 
-            ForecastItem(
-                aqi = data,
-                Modifier.background(MaterialTheme.colorScheme.primaryContainer)
-            )
+            }
         }
     }
 }

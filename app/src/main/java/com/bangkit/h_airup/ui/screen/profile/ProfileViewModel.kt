@@ -16,9 +16,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -54,6 +58,7 @@ class ProfileViewModel(
     val isLoading: StateFlow<Boolean> = _isLoading
 
     suspend fun putUser(requestBody: UserRequestBody, userId: String): String? {
+
         return try {
             val client = ApiConfig.getApiService().putUser(requestBody, userId)
 
