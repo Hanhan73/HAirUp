@@ -1,6 +1,6 @@
 # H-AirUp
 ## H-AirUp Mobile Application
-In this project, the mobile developer team is trying to create a display based on the mockup/agreement that has been created. Application creation using Android Studio, which is integrated with the CC team as a facilitator in the Backend and the ML team in creating AQI and Weather forecasting models
+In this project, the Machine Learning (ML) team's primary role is to develop a predictive model for weather and air quality index (AQI), leveraging our comprehensive dataset. This model forms the basis for generating informed predictions tailored to user inputs. These inputs are managed and transmitted by the Cloud Computing (CC) team, facilitating a seamless integration of predictive analytics into the user experience. This collaborative effort between ML and CC teams ensures that the model's insights are effectively utilized and aligned with user-specific needs.
 ## Features
 - Push Notification for AQI status change
 - Get weather and AQI current conditions 
