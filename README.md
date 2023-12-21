@@ -1,6 +1,6 @@
 # H-AirUp
 ## H-AirUp Mobile Application
-
+In this project, the mobile developer team is trying to create a display based on the mockup/agreement that has been created. Application creation using Android Studio, which is integrated with the CC team as a facilitator in the Backend and the ML team in creating AQI and Weather forecasting models
 ## Features
 - Push Notification for AQI status change
 - Get weather and AQI current conditions 
