@@ -3,13 +3,9 @@ package com.bangkit.h_airup.ui.component
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,9 +18,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bangkit.h_airup.HAirUpApp
 import com.bangkit.h_airup.R
 import com.bangkit.h_airup.ui.theme.HAirUpTheme
+import com.bangkit.h_airup.ui.theme.md_theme_light_primary
 
 @Composable
 fun GreetingItem(
@@ -53,11 +49,13 @@ fun GreetingItem(
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.ExtraBold
                 ),
-                fontSize = 14.sp
+                fontSize = 14.sp,
+                color = md_theme_light_primary
             )
             Text(
                 text = "Good day to you $name!",
-                fontSize = 12.sp
+                fontSize = 12.sp,
+                color = md_theme_light_primary
             )
         }
     }

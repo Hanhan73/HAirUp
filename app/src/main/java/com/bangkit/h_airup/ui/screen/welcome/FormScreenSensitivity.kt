@@ -1,7 +1,6 @@
 package com.bangkit.h_airup.ui.screen.welcome
 
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -29,7 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,17 +46,16 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.bangkit.h_airup.R
 import com.bangkit.h_airup.di.Injection
-import com.bangkit.h_airup.model.UserEntity
 import com.bangkit.h_airup.model.UserRequestBody
 import com.bangkit.h_airup.pref.UserPreference
-import com.bangkit.h_airup.retrofit.ApiConfig
 import com.bangkit.h_airup.ui.ViewModelFactory
 import com.bangkit.h_airup.ui.navigation.Screen
+import com.bangkit.h_airup.ui.theme.md_theme_light_onSecondaryContainer
+import com.bangkit.h_airup.ui.theme.md_theme_light_secondaryContainer
 import kotlinx.coroutines.launch
 
 @Composable
@@ -72,7 +68,7 @@ fun FormScreenSensitivity(
     FormScreenSensitivityContent(navController, viewModel)
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun FormScreenSensitivityContent(
     navController: NavController,
@@ -88,8 +84,6 @@ fun FormScreenSensitivityContent(
 
     val status = listOf("Pregnant", "Athletes")
     val medHistories = listOf("Heart Disease", "Lung Disease")
-
-
 
     Column(
         modifier = Modifier
@@ -125,7 +119,7 @@ fun FormScreenSensitivityContent(
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.94f)
-                .background(MaterialTheme.colorScheme.primaryContainer)
+                .background(md_theme_light_secondaryContainer)
                 .border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
                 .padding(vertical = 16.dp, horizontal = 12.dp)
                 .clickable { expanded1 = !expanded1 }
@@ -139,7 +133,7 @@ fun FormScreenSensitivityContent(
             ) {
                 Text(
                     text = if (viewModel.sensitivity.isBlank()) "Select Status" else viewModel.sensitivity,
-                    color = if (viewModel.sensitivity.isBlank()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                    color = if (viewModel.sensitivity.isBlank()) md_theme_light_onSecondaryContainer.copy(alpha = 0.6f) else md_theme_light_onSecondaryContainer
                 )
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
@@ -169,7 +163,7 @@ fun FormScreenSensitivityContent(
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.94f)
-                .background(MaterialTheme.colorScheme.primaryContainer)
+                .background(md_theme_light_secondaryContainer)
                 .border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
                 .padding(vertical = 16.dp, horizontal = 12.dp)
                 .clickable { expanded2 = !expanded2 }
@@ -183,7 +177,7 @@ fun FormScreenSensitivityContent(
             ) {
                 Text(
                     text = if (viewModel.medHistory.isBlank()) "Select Medical History" else viewModel.medHistory,
-                    color = if (viewModel.medHistory.isBlank()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                    color = if (viewModel.medHistory.isBlank()) md_theme_light_onSecondaryContainer.copy(alpha = 0.6f) else md_theme_light_onSecondaryContainer
                 )
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
@@ -221,26 +215,22 @@ fun FormScreenSensitivityContent(
                         lokasi = if (userPreference.getInstance(context).getCity() == null) "Kab. Bandung Barat" else userPreference.getInstance(context).getCity(),
                         status = if (viewModel.sensitivity.isBlank()) null else viewModel.sensitivity,
                         riwayatPenyakit = if (viewModel.medHistory.isBlank()) null else viewModel.medHistory,
-                        image = null
+                        files = null
                     )
 
                     val userId = viewModel.postUser(requestBody)
                     Log.d("FormScreen", userId.toString())
 
                     if (!userId.isNullOrBlank()) {
-                        // Save data in user preferences
                         userPreference.getInstance(context).saveMedicalData(viewModel.sensitivity, viewModel.medHistory)
                         userPreference.getInstance(context).setIsFirstTime(false)
                         userPreference.getInstance(context).setUserId(userId)
 
-                        // Continue with navigation or other logic
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Home.route) {
                                 inclusive = true
                             }
                         }
-                    } else {
-                        // Handle error or show a message to the user
                     }
                 }
             },
@@ -274,26 +264,22 @@ fun FormScreenSensitivityContent(
                             lokasi = if (userPreference.getInstance(context).getCity() == null) "Kab. Bandung Barat" else userPreference.getInstance(context).getCity(),
                             status = null,
                             riwayatPenyakit = null,
-                            image = null
+                            files = null
                         )
 
                         val userId = viewModel.postUser(requestBody)
                         Log.d("FormScreen", userId.toString())
 
                         if (!userId.isNullOrBlank()) {
-                            // Save data in user preferences
                             userPreference.getInstance(context).saveMedicalData(viewModel.sensitivity, viewModel.medHistory)
                             userPreference.getInstance(context).setIsFirstTime(false)
                             userPreference.getInstance(context).setUserId(userId)
-
-                            // Continue with navigation or other logic
                             navController.navigate(Screen.Home.route) {
                                 popUpTo(Screen.Home.route) {
                                     inclusive = true
                                 }
                             }
                         } else {
-                            // Handle error or show a message to the user
                         }
                     }
                 }
@@ -323,10 +309,3 @@ fun FormScreenSensitivityContent(
         }
     }
 }
-
-
-//@Preview(showSystemUi = true, device = Devices.PIXEL_4)
-//@Composable
-//fun FormScreenSensitivityPreview() {
-//    FormScreenSensitivityContent(rememberNavController())
-//}

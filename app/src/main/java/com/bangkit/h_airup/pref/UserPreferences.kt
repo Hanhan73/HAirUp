@@ -83,14 +83,6 @@ class UserPreference private constructor(private val dataStore: DataStore<Prefer
         }
     }
 
-    suspend fun isFirstTime(): Boolean {
-        return dataStore.data
-            .map { preferences ->
-                preferences[IS_FIRSTTIME_KEY] ?: true
-            }
-            .first()
-    }
-
 
     fun getStatus() {
         dataStore.data.map { preferences ->

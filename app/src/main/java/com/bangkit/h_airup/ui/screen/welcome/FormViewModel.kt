@@ -3,21 +3,14 @@ package com.bangkit.h_airup.ui.screen.welcome
 import android.content.Context
 import android.location.LocationManager
 import android.util.Log
-import android.widget.Toast
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.bangkit.h_airup.data.AqiRepository
-import com.bangkit.h_airup.database.AppDatabase
-import com.bangkit.h_airup.model.UserEntity
 import com.bangkit.h_airup.model.UserRequestBody
-import com.bangkit.h_airup.pref.UserPreference
 import com.bangkit.h_airup.response.UserResponse
 import com.bangkit.h_airup.retrofit.ApiConfig
 import retrofit2.Call
@@ -43,7 +36,6 @@ class FormViewModel(
     private var _userId = MutableLiveData<String>()
     val userId: LiveData<String> get() = _userId
 
-    // Callback to notify when userId is available
     private var userIdCallback: ((String) -> Unit)? = null
 
     fun setUserIdCallback(callback: (String) -> Unit) {
@@ -60,7 +52,6 @@ class FormViewModel(
         return try {
             val client = ApiConfig.getApiService().postUser(requestBody)
 
-            // Use suspendCoroutine to convert the callback-based API call to a suspend function
             val response = suspendCoroutine<Response<UserResponse>> { continuation ->
                 client.enqueue(object : Callback<UserResponse> {
                     override fun onResponse(call: Call<UserResponse>, response: Response<UserResponse>) {
@@ -81,7 +72,6 @@ class FormViewModel(
 
                 userIdFromResponse
             } else {
-                // Handle unsuccessful response
                 null
             }
         } catch (e: Exception) {

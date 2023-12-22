@@ -1,14 +1,16 @@
 package com.bangkit.h_airup.retrofit
 
+import com.bangkit.h_airup.model.RecommendRequestBody
 import com.bangkit.h_airup.model.UserRequestBody
 import com.bangkit.h_airup.response.APIResponse
 import com.bangkit.h_airup.response.ForecastResponse
-import com.bangkit.h_airup.response.SSEResponse
+import com.bangkit.h_airup.response.RecommendResponse
 import com.bangkit.h_airup.response.TestResponse
+import com.bangkit.h_airup.response.TestWeatherResponse
 import com.bangkit.h_airup.response.UserResponse
+import com.bangkit.h_airup.response.WeathersResponse
 import okhttp3.MultipartBody
 import retrofit2.Call
-import retrofit2.Callback
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Headers
@@ -27,17 +29,34 @@ ApiService {
         @Path("userId") userid: String
     ): Call<APIResponse>
 
-    @GET("api/forecast")
+    @GET("api/forecastAQI")
     fun getForecast(): Call<ForecastResponse>
 
     @GET("test")
     fun getTest(): Call<TestResponse>
 
+    @GET("api/forecastWeather")
+    fun getForecastWeather(): Call<WeathersResponse>
+
+    @GET("testWeather")
+    fun getTestWeather(): Call<TestWeatherResponse>
+
     @POST("user")
     fun postUser(@Body requestBody: UserRequestBody) : Call<UserResponse>
 
+    @Multipart
     @PUT("user/{userId}")
     fun putUser(
-        @Body requestBody: UserRequestBody,
-        @Path("userId") userid: String) : Call<UserResponse>
+        @Part files: MultipartBody.Part,
+        @Part("body") requestBody: UserRequestBody,
+        @Path("userId") userid: String
+    ): Call<UserResponse>
+    @POST("api/user/{userId}")
+    fun createRecommendation(
+        @Body requestBody: RecommendRequestBody,
+        @Path("userId") userid: String) : Call<RecommendResponse>
+
+    @GET("api/user/{userId}")
+    fun getRecommendation(
+        @Path("userId") userid: String) : Call<RecommendResponse>
 }

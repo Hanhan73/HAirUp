@@ -13,8 +13,7 @@ data class TestResponse(
 
 data class Data(
 
-	@field:SerializedName("predictions")
-	val predictions: Predictions? = null,
+
 
 	@field:SerializedName("aqi")
 	val aqi: Aqi? = null,
@@ -23,7 +22,7 @@ data class Data(
 	val concentration: Concentration? = null
 )
 
-data class Predictions(
+data class Predictions1(
 
 	@field:SerializedName("next_1")
 	val next1: Next1? = null,

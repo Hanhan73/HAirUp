@@ -1,7 +1,8 @@
 package com.bangkit.h_airup.ui.screen.aqi
 
+import android.os.Build
 import android.util.Log
-import androidx.activity.ComponentActivity
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,9 +16,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -36,30 +40,29 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.bangkit.h_airup.R
 import com.bangkit.h_airup.di.Injection
 import com.bangkit.h_airup.model.ApiData
 import com.bangkit.h_airup.pref.UserModel
 import com.bangkit.h_airup.pref.UserPreference
-import com.bangkit.h_airup.response.APIResponse
+import com.bangkit.h_airup.response.ForecastResponse
 import com.bangkit.h_airup.ui.ViewModelFactory
 import com.bangkit.h_airup.ui.component.AqiPage
+import com.bangkit.h_airup.ui.component.ForecastAqiTable
 import com.bangkit.h_airup.ui.component.LoadingScreen
 import com.bangkit.h_airup.ui.component.ProfileItem
-import com.bangkit.h_airup.ui.screen.home.HomeViewModel
+import com.bangkit.h_airup.ui.theme.md_theme_light_primaryContainer
+import com.bangkit.h_airup.utils.IconPicker
 import com.bangkit.h_airup.utils.ShortenCity
+import com.bangkit.h_airup.utils.categoryAqi
 import com.bangkit.h_airup.utils.onProfileItemClick
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerInfoWindow
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
-import kotlinx.coroutines.tasks.await
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AqiScreen(
     modifier: Modifier = Modifier,
@@ -71,6 +74,7 @@ fun AqiScreen(
 ) {
     val userModel by userPreference.getSession().collectAsState(initial = UserModel())
     val apiResponse by viewModel.apiResponse.collectAsState()
+    val forecastResponse by viewModel.forecastResponse.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     var city: String
@@ -86,53 +90,54 @@ fun AqiScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.getLocalData()
+        viewModel.getForecastResponse()
     }
 
     if (isLoading) {
-        // Show loading indicator
         LoadingScreen()
     } else {
-        // Data has loaded, show the content
         AqiContent(
+            viewModel,
             userModel = userModel,
             city,
             province,
             apiResponse,
+            forecastResponse,
             navController
         )
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AqiContent(
+    viewModel: AqiViewModel,
     userModel: UserModel,
     city: String,
     province: String,
     apiResponse: ApiData?,
+    forecastResponse: ForecastResponse?,
     navController: NavController
 
 ) {
-    val lat: Double? = apiResponse?.response?.coordinates?.lat
+    val isLoadingForecast by viewModel.isLoadingForecast.collectAsState()
+    val lat: Double? =  apiResponse?.response?.coordinates?.lat
     val lon: Double? = apiResponse?.response?.coordinates?.lng
-    // Correct order for LatLng
     var lokasi = LatLng(0.0, 0.0)
-// Check if lat and lon are not null before using them
     if (lat != null && lon != null) {
-        // Correct order for LatLng
         lokasi = LatLng(lat, lon)
     } else {
-        // Handle the case where lat or lon is null
         Log.e("AqiScreen", "Latitude or longitude is null.")
     }
 
+    LaunchedEffect(viewModel) {
+        viewModel.getForecastResponse()
+    }
 
-
-    // Correct order for CameraPosition
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(lokasi, 10f)
     }
 
-    // Flag to track if LaunchedEffect has already been executed
     var isLaunchedEffectExecuted by remember { mutableStateOf(false) }
 
     LazyColumn(
@@ -145,7 +150,7 @@ fun AqiContent(
         item {
             Column(
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .background(md_theme_light_primaryContainer)
                     .padding(bottom = 16.dp, top = 40.dp)
             ) {
                 ProfileItem(
@@ -160,7 +165,7 @@ fun AqiContent(
 
                 AqiPage(
                     aqiNumber = apiResponse?.response?.aqi?.indexes?.get(0)?.aqi,
-                    aqiStatus = apiResponse?.response?.aqi?.indexes?.get(0)?.category.toString(),
+                    aqiStatus = categoryAqi.getCategoryAqi(apiResponse?.response?.aqi?.indexes?.get(0)?.aqi),
                     aqiPollutan = apiResponse?.response?.aqi?.indexes?.get(0)?.dominantPollutant,
                     pollutants = apiResponse?.response?.aqi?.pollutants
                 )
@@ -173,18 +178,15 @@ fun AqiContent(
                     .aspectRatio(1f),
                 cameraPositionState = cameraPositionState
             ) {
-                Log.d("AqiScreen", "apiResponse: $apiResponse")
 
                 val aqiIndex = apiResponse?.response?.aqi?.indexes?.getOrNull(0)
-                Log.d("AqiScreen", "aqiIndex: $aqiIndex")
 
                 val aqiNumber = aqiIndex?.aqi
+                val aqiIcon = IconPicker.getAqiIcon(aqiIndex?.aqi)
                 val aqiStatus = aqiIndex?.category.toString()
-                val weather = apiResponse?.response?.weather?.weather?.getOrNull(0)?.description
+                val weather = apiResponse?.response?.weather?.weather?.getOrNull(0)?.main
+                val weatherIcon = IconPicker.getWeatherIcon(apiResponse?.response?.weather?.weather?.getOrNull(0)?.icon)
 
-                Log.d("AqiScreen", "aqiNumber: $aqiNumber")
-                Log.d("AqiScreen", "aqiStatus: $aqiStatus")
-                Log.d("AqiScreen", "weather: $weather")
 
                 MarkerInfoWindow(
                     state = MarkerState(position = lokasi),
@@ -203,7 +205,7 @@ fun AqiContent(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Image(
-                                painter = painterResource(id = R.drawable.logo),
+                                painter = painterResource(id = aqiIcon),
                                 contentDescription = null,
                                 contentScale = ContentScale.Fit,
                                 modifier = Modifier
@@ -221,7 +223,7 @@ fun AqiContent(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Image(
-                                painter = painterResource(id = R.drawable.logo),
+                                painter = painterResource(id = weatherIcon),
                                 contentDescription = null,
                                 contentScale = ContentScale.Fit,
                                 modifier = Modifier
@@ -242,12 +244,29 @@ fun AqiContent(
                 }
 
 
-                // Execute LaunchedEffect only once
                 if (!isLaunchedEffectExecuted) {
-                    // Set the initial camera position when the map is first shown
                     cameraPositionState.position = CameraPosition.fromLatLngZoom(lokasi, 10f)
                     isLaunchedEffectExecuted = true
                 }
+            }
+        }
+
+        item{
+            if (isLoadingForecast) {
+                Box(
+                    modifier = Modifier
+                        .height(500.dp)
+                        .fillMaxWidth()
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(50.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }else {
+                ForecastAqiTable(forecastResponse = forecastResponse)
             }
         }
     }

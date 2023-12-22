@@ -1,14 +1,15 @@
 package com.bangkit.h_airup.ui.component
 
+import android.os.Build
+import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -29,18 +30,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.paint
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.bangkit.h_airup.R
+import androidx.compose.ui.unit.sp
 import com.bangkit.h_airup.response.ForecastResponse
+import com.bangkit.h_airup.response.WeathersResponse
+import com.bangkit.h_airup.ui.theme.md_theme_light_onSecondaryContainer
+import com.bangkit.h_airup.ui.theme.md_theme_light_secondaryContainer
+import com.bangkit.h_airup.ui.theme.md_theme_light_tertiaryContainer
 import com.bangkit.h_airup.utils.TempConvert
-import com.bangkit.h_airup.utils.onProfileItemClick
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ForecastTable(
-    forecastResponse: ForecastResponse?
+    forecastResponse: ForecastResponse?,
+    weatherResponse: WeathersResponse?
 ){
     var expanded by remember { mutableStateOf(false) }
     var selectedCity by remember { mutableStateOf("Bandung") }
@@ -51,14 +55,24 @@ fun ForecastTable(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         userScrollEnabled = false,
         modifier = Modifier
-            .height(500.dp)
-            .background(MaterialTheme.colorScheme.background)
+            .height(750.dp)
+            .background(md_theme_light_secondaryContainer)
     ) {
         item {
+            Text(
+                text = "Forecast",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                ),
+                fontSize = 24.sp,
+                modifier = Modifier.padding(8.dp),
+                color = md_theme_light_onSecondaryContainer
+            )
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.94f)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .background(md_theme_light_tertiaryContainer)
                     .border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
                     .padding(vertical = 16.dp, horizontal = 12.dp)
                     .clickable { expanded = !expanded }
@@ -72,7 +86,7 @@ fun ForecastTable(
                 ) {
                     Text(
                         text = selectedCity,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = md_theme_light_onSecondaryContainer
                     )
                     Icon(
                         imageVector = Icons.Default.ArrowDropDown,
@@ -117,12 +131,43 @@ fun ForecastTable(
             else -> null
         }
 
+        val selectedPastWeather = when (selectedCity) {
+            "Bandung" -> weatherResponse?.bandung?.pastDataWeather
+            "Semarang" -> weatherResponse?.semarang?.pastDataWeather
+            "Jakarta" -> weatherResponse?.jakarta?.pastDataWeather
+            else -> null
+        }
+        val selectedCurrentWeather = when (selectedCity) {
+            "Bandung" -> weatherResponse?.bandung?.currentDataWeather
+            "Semarang" -> weatherResponse?.semarang?.currentDataWeather
+            "Jakarta" -> weatherResponse?.jakarta?.currentDataWeather
+            else -> null
+        }
+        val selectedForecastWeather = when (selectedCity) {
+            "Bandung" -> weatherResponse?.bandung?.foreCastWeather
+            "Semarang" -> weatherResponse?.semarang?.foreCastWeather
+            "Jakarta" -> weatherResponse?.jakarta?.foreCastWeather
+            else -> null
+        }
+
+        Log.d("ASADDA", weatherResponse.toString())
+
+
         selectedForecastdata?.let {
-            items(it) { data ->
+            var i = 1
+            items(it.reversed()) { data ->
+
+                val daysAfter = it.indexOf(data) + 1
+                val tempPredict = selectedForecastWeather?.get(i-1)?.tx
+
+
                 forecastItem(
-                    forecast  = data,
-                    Modifier.background(MaterialTheme.colorScheme.primaryContainer)
+                    forecast = data,
+                    Modifier.background(MaterialTheme.colorScheme.primaryContainer),
+                    daysAfter,
+                    tempPredict
                 )
+                i++
             }
         }
 
@@ -130,18 +175,28 @@ fun ForecastTable(
             item(it) {
                 currentForecastItem(
                     curr = it,
-                    Modifier.background(MaterialTheme.colorScheme.primaryContainer)
+                    Modifier.background(MaterialTheme.colorScheme.primaryContainer),
+                    TempConvert.KelvinToCelsiusn(selectedCurrentWeather?.main?.temp)
+
                 )
             }
         }
 
         selectedPastdata?.let {
+            var i = 1
             items(it) { data ->
-                pastForecastItem(
-                    past = data,
-                    Modifier.background(MaterialTheme.colorScheme.primaryContainer)
-                )
+                val daysAgo = it.indexOf(data) + 1 // calculate the number of days ago
+
+                selectedPastWeather?.get(i)?.temp?.let { it1 ->
+                    pastForecastItem(
+                        past = data,
+                        Modifier.background(MaterialTheme.colorScheme.primaryContainer),
+                        daysAgo = daysAgo,
+                        it1.toInt()
+                    )
+                }
             }
+            i++
         }
 
     }

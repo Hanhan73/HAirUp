@@ -1,6 +1,7 @@
 package com.bangkit.h_airup.ui.screen.weather
 
-import android.util.Log
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,11 +16,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,13 +30,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.paint
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Devices
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -44,22 +45,19 @@ import com.bangkit.h_airup.di.Injection
 import com.bangkit.h_airup.model.ApiData
 import com.bangkit.h_airup.pref.UserModel
 import com.bangkit.h_airup.pref.UserPreference
-import com.bangkit.h_airup.response.Weather
 import com.bangkit.h_airup.ui.ViewModelFactory
-import com.bangkit.h_airup.ui.component.AqiPage
+import com.bangkit.h_airup.ui.component.ForecastWeatherTable
 import com.bangkit.h_airup.ui.component.LoadingScreen
 import com.bangkit.h_airup.ui.component.ProfileItem
 import com.bangkit.h_airup.ui.component.WeatherGridItem
-import com.bangkit.h_airup.ui.screen.aqi.AqiContent
-import com.bangkit.h_airup.ui.screen.aqi.AqiViewModel
+import com.bangkit.h_airup.ui.theme.md_theme_light_primary
 import com.bangkit.h_airup.utils.ConvertTime
+import com.bangkit.h_airup.utils.IconPicker
 import com.bangkit.h_airup.utils.ShortenCity
 import com.bangkit.h_airup.utils.TempConvert
 import com.bangkit.h_airup.utils.onProfileItemClick
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MarkerInfoWindow
-import com.google.maps.android.compose.MarkerState
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun WeatherScreen(
     modifier: Modifier = Modifier,
@@ -90,13 +88,12 @@ fun WeatherScreen(
     }
 
     if (isLoading) {
-        // Show loading indicator
         LoadingScreen()
     } else {
-        // Data has loaded, show the content
         WeatherContent(
             userModel = userModel,
             city,
+            viewModel,
             province,
             apiResponse,
             navController
@@ -105,14 +102,23 @@ fun WeatherScreen(
 
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun WeatherContent(
     userModel: UserModel,
     city: String,
+    viewModel: WeatherViewModel,
     province: String,
     apiResponse: ApiData?,
     navController: NavController
 ) {
+    val weatherResponse by viewModel.weatherResponse.collectAsState()
+    val isLoading by viewModel.isLoadingForecast.collectAsState()
+    LaunchedEffect(viewModel) {
+        viewModel.getWeatherTestResponse()
+        viewModel.getWeatherForecastResponse()
+    }
+
     LazyColumn(
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -123,7 +129,15 @@ fun WeatherContent(
         item {
             Column(
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .height(600.dp)
+                    .paint(
+                        painterResource(
+                            id = IconPicker.getWeatherIllustration(
+                                apiResponse?.response?.weather?.weather?.get(0)?.icon
+                            )
+                        ),
+                        contentScale = ContentScale.Crop
+                    )
                     .padding(bottom = 16.dp, top = 40.dp)
             ) {
                 ProfileItem(
@@ -145,25 +159,23 @@ fun WeatherContent(
                         .fillMaxWidth()
                         .padding(start = 32.dp, end = 32.dp, bottom = 16.dp)
                 ) {
-                    // Temperature
                     Column {
                         Text(
-                            text = "${TempConvert.KelvinToCelsius(apiResponse?.response?.weather?.main?.temp as? Double ?: 0.0)}°C",
+                            text = "${TempConvert.KelvinToCelsius(apiResponse?.response?.weather?.main?.temp ?: 0.0)}°C",
                             fontSize = 48.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimary
+                            color = md_theme_light_primary
                         )
 
                         Text(
                             text = "Feels like ${TempConvert.KelvinToCelsius(apiResponse?.response?.weather?.main?.feelsLike ?: 0.0)}°C",
                             fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.onPrimary
+                            color = md_theme_light_primary
                         )
                     }
 
-                    // Icon
                     Image(
-                        painter = painterResource(id = R.drawable.d09),
+                        painter = painterResource(id = IconPicker.getWeatherIcon(apiResponse?.response?.weather?.weather?.get(0)?.icon)),
                         contentDescription = null,
                         modifier = Modifier
                             .width(64.dp)
@@ -181,40 +193,56 @@ fun WeatherContent(
                     item {
                         WeatherGridItem(
                             title = "Humidity",
-                            iconRes = R.drawable.weather_icon,
+                            iconRes = R.drawable.humidity,
                             text = apiResponse?.response?.weather?.main?.humidity.toString(),
                         )
                     }
                     item {
                         WeatherGridItem(
                             title = "Wind",
-                            iconRes = R.drawable.weather_icon,
+                            iconRes = R.drawable.wind,
                             text = apiResponse?.response?.weather?.wind?.speed.toString(),
                         )
                     }
                     item {
                         WeatherGridItem(
                             title = "Sunrise",
-                            iconRes = R.drawable.weather_icon,
+                            iconRes = R.drawable.sunrise,
                             text = ConvertTime.convertToTime(apiResponse?.response?.weather?.sys?.sunrise?.toLong()),
                         )
                     }
                     item {
                         WeatherGridItem(
                             title = "Sunset",
-                            iconRes = R.drawable.weather_icon,
+                            iconRes = R.drawable.sunset,
                             text = ConvertTime.convertToTime(apiResponse?.response?.weather?.sys?.sunset?.toLong()),
                         )
                     }
                 }
             }
+
+
+            }
+        item {
+
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .height(500.dp)
+                        .fillMaxWidth()
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(50.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }else {
+                weatherResponse?.let { ForecastWeatherTable(weatherResponse = it) }
+            }
         }
+
     }
 }
 
-
-//@Preview(showBackground = true, showSystemUi = true, device = Devices.PIXEL_4)
-//@Composable
-//fun WeatherScreenPreview(){
-//    WeatherScreen()
-//}

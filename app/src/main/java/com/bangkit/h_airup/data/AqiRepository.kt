@@ -1,17 +1,12 @@
 package com.bangkit.h_airup.data
 
 
-import android.app.Application
-import android.content.Context
-import androidx.compose.ui.platform.LocalContext
 import com.bangkit.h_airup.dao.ApiDao
-import com.bangkit.h_airup.database.AppDatabase
 import com.bangkit.h_airup.model.ApiData
+import com.bangkit.h_airup.model.ForecastData
 import com.bangkit.h_airup.model.UserEntity
-import com.bangkit.h_airup.response.APIResponse
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
+import com.bangkit.h_airup.model.WeatherData
+
 
 class AqiRepository(private val apiDao: ApiDao) {
 
@@ -33,6 +28,13 @@ class AqiRepository(private val apiDao: ApiDao) {
 
     suspend fun getLatestAPIResponse(): ApiData? {
         return apiDao.getLatestAPIResponse()
+    }
+    suspend fun getLatestWeatherResponse(): WeatherData? {
+        return apiDao.getLatestWeatherResponse()
+    }
+
+    suspend fun getLatestForecastResponse(): ForecastData? {
+        return apiDao.getLatestForecastResponse()
     }
 
     suspend fun getUserId(): UserEntity? {

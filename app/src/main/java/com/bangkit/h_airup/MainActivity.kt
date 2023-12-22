@@ -1,8 +1,6 @@
 package com.bangkit.h_airup
 
 import android.Manifest
-import android.app.Application
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.Location
@@ -13,7 +11,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,25 +19,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewModelScope
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.OneTimeWorkRequest
-import androidx.work.PeriodicWorkRequest
-import androidx.work.WorkManager
 import com.bangkit.h_airup.pref.UserPreference
 import com.bangkit.h_airup.ui.theme.HAirUpTheme
-import com.bangkit.h_airup.utils.FetchDataWorker
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import java.io.IOException
-import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
 
@@ -76,16 +62,11 @@ class MainActivity : ComponentActivity() {
                     }
                 } catch (e: SecurityException) {
                     Log.e("LocationUpdatesError", "SecurityException: ${e.message}")
-                    // Handle the case where there's a security exception (e.g., user revokes permission)
                     Toast.makeText(this, "Location permission revoked", Toast.LENGTH_SHORT).show()
                 }
-            } else {
-                // Handle the case where location permission is not granted
-                Toast.makeText(this, "Location permission not granted", Toast.LENGTH_SHORT).show()
+            } else { Toast.makeText(this, "Location permission not granted", Toast.LENGTH_SHORT).show()
             }
         }
-
-
 
     private fun getProvinceData(latitude: Double, longitude: Double): String {
         val geocoder = Geocoder(this)
@@ -115,6 +96,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -137,6 +119,7 @@ class MainActivity : ComponentActivity() {
 
         userPreference = UserPreference.getInstance(this)
 
+
         setContent {
             HAirUpTheme {
                 Surface(
@@ -147,11 +130,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
-        // Check and request both location and notification permissions together
     }
-
-
 
     private fun requestPermissions(){
         isLocationPermissionGranted = ContextCompat.checkSelfPermission(
@@ -176,10 +155,6 @@ class MainActivity : ComponentActivity() {
         }
 
     }
-
-
-
-
 }
 
 

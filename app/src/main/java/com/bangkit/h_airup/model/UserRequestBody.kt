@@ -6,7 +6,7 @@ data class UserRequestBody(
     val nama: String,
     val umur: Int,
     val lokasi: String,
-    val image: File?,
+    val files: File?,
     val status: String? = null,
     val riwayatPenyakit: String? = null
 )

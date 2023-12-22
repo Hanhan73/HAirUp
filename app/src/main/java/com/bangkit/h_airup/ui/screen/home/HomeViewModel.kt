@@ -2,16 +2,13 @@ package com.bangkit.h_airup.ui.screen.home
 
 import android.content.Context
 import android.content.Context.LOCATION_SERVICE
-import android.content.pm.PackageManager
-import android.location.Geocoder
-import android.location.Location
 import android.location.LocationManager
 import android.util.Log
-import androidx.activity.ComponentActivity
-import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.getSystemService
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.OneTimeWorkRequest
@@ -21,30 +18,28 @@ import com.bangkit.h_airup.dao.ApiDao
 import com.bangkit.h_airup.data.AqiRepository
 import com.bangkit.h_airup.database.AppDatabase
 import com.bangkit.h_airup.model.ApiData
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import com.bangkit.h_airup.model.LocationModel
-import com.bangkit.h_airup.pref.UserPreference
+import com.bangkit.h_airup.model.ForecastData
+import com.bangkit.h_airup.model.RecommendRequestBody
+import com.bangkit.h_airup.model.WeatherData
+import com.bangkit.h_airup.response.WeathersResponse
 import com.bangkit.h_airup.response.APIResponse
 import com.bangkit.h_airup.response.ForecastResponse
+import com.bangkit.h_airup.response.RecommendResponse
 import com.bangkit.h_airup.response.TestResponse
+import com.bangkit.h_airup.response.TestWeatherResponse
 import com.bangkit.h_airup.retrofit.ApiConfig
 import com.bangkit.h_airup.utils.FetchDataWorker
 import com.google.gson.JsonSyntaxException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 class HomeViewModel(
     private val repository: AqiRepository,
@@ -52,14 +47,27 @@ class HomeViewModel(
 
 ) : ViewModel() {
 
+    var hour by mutableIntStateOf(0)
+    var day by mutableIntStateOf(0)
+    var kota by mutableStateOf<String?>("")
+
     private val _apiResponse = MutableStateFlow<APIResponse?>(null)
     val apiResponse: StateFlow<APIResponse?> = _apiResponse
 
     private val _forecastResponse = MutableStateFlow<ForecastResponse?>(null)
     val forecastResponse: StateFlow<ForecastResponse?> = _forecastResponse
 
+    private val _weatherResponse = MutableStateFlow<WeathersResponse?>(null)
+    val weatherResponse: StateFlow<WeathersResponse?> = _weatherResponse
+
     private val _testResponse = MutableStateFlow<TestResponse?>(null)
     val testResponse: StateFlow<TestResponse?> = _testResponse
+
+    private val _weatherTestResponse = MutableStateFlow<TestWeatherResponse?>(null)
+    val weatherTestResponse: StateFlow<TestWeatherResponse?> = _weatherTestResponse
+
+    private val _recommendResponse = MutableStateFlow<RecommendResponse?>(null)
+    val recommendResponse: StateFlow<RecommendResponse?> = _recommendResponse
 
     private val mLocationManager = context.getSystemService(LOCATION_SERVICE) as LocationManager
 
@@ -79,22 +87,18 @@ class HomeViewModel(
         val uniqueWorkName = "NOTIFICATIONS"
 
         if (workManager.getWorkInfosByTag(uniqueWorkName).get().isEmpty()) {
-            // Set userId as input data
             val inputData = Data.Builder().putString("USER_ID", userId).build()
-
-            // Schedule a unique OneTimeWorkRequest to trigger the periodic work
             val oneTimeWorkRequest = OneTimeWorkRequest.Builder(FetchDataWorker::class.java)
                 .addTag(uniqueWorkName)
-                .setInputData(inputData) // Pass userId as input data
+                .setInputData(inputData)
                 .build()
 
             workManager.enqueue(oneTimeWorkRequest)
 
-            // Schedule the periodic work
             val periodicWorkRequest = PeriodicWorkRequest.Builder(
                 FetchDataWorker::class.java,
                 1, TimeUnit.HOURS
-            ).setInputData(inputData) // Pass userId as input data
+            ).setInputData(inputData)
                 .build()
 
             workManager.enqueueUniquePeriodicWork(
@@ -119,8 +123,6 @@ class HomeViewModel(
                         continuation.resumeWithException(t)
                     }
                 })
-
-                // This block will be executed if the coroutine is cancelled
                 continuation.invokeOnCancellation {
                     client.cancel()
                 }
@@ -151,12 +153,13 @@ class HomeViewModel(
                     }
                 })
 
-                // This block will be executed if the coroutine is cancelled
                 continuation.invokeOnCancellation {
                     client.cancel()
                 }
             }
 
+            val forecastData = ForecastData(forecastResponse = forecastResponse)
+            dao.saveForecastResponse(forecastData)
             _forecastResponse.value = forecastResponse
             _isLoadingForecast.value = false
         } catch (e: JsonSyntaxException) {
@@ -166,6 +169,99 @@ class HomeViewModel(
             _isLoadingForecast.value = false
         }
     }
+    suspend fun getWeatherTestResponse() {
+        try {
+            val weatherTest = suspendCancellableCoroutine<TestWeatherResponse> { continuation ->
+                val client = ApiConfig.getApiService().getTestWeather()
+                client.enqueue(object : Callback<TestWeatherResponse> {
+                    override fun onResponse(call: Call<TestWeatherResponse>, response: Response<TestWeatherResponse>) {
+                        response.body()?.let { continuation.resume(it) }
+                    }
+
+                    override fun onFailure(call: Call<TestWeatherResponse>, t: Throwable) {
+                        continuation.resumeWithException(t)
+                    }
+                })
+
+                continuation.invokeOnCancellation {
+                    client.cancel()
+                }
+            }
+
+
+            _weatherTestResponse.value = weatherTest
+            _isLoadingForecast.value = false
+        } catch (e: JsonSyntaxException) {
+            Log.e("HOMEVIEWMODEL", "JsonSyntaxException: ${e.message}")
+        } catch (t: Throwable) {
+            Log.e("HOMEVIEWMODEL", "onFailure: ${t.message}")
+            _isLoadingForecast.value = false
+        }
+    }
+
+
+    suspend fun postRecommendResponse(recommendRequestBody: RecommendRequestBody, userId: String): String?{
+        return try {
+            val client = ApiConfig.getApiService().createRecommendation(recommendRequestBody, userId)
+
+            val response = suspendCoroutine<Response<RecommendResponse>> { continuation ->
+                client.enqueue(object : Callback<RecommendResponse> {
+                    override fun onResponse(call: Call<RecommendResponse>, response: Response<RecommendResponse>) {
+                        continuation.resume(response)
+                    }
+
+                    override fun onFailure(call: Call<RecommendResponse>, t: Throwable) {
+                        continuation.resumeWithException(t)
+                    }
+                })
+            }
+
+            if (response.isSuccessful) {
+                val userIdFromResponse = response.body()?.response?.pesan
+
+
+                Log.d("FormViewModel", userIdFromResponse.toString())
+
+                userIdFromResponse
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("FormViewModel", "Error posting user: ${e.message}")
+            null
+        }
+    }
+
+    suspend fun getWeatherForecastResponse() {
+        try {
+            val weatherResponse = suspendCancellableCoroutine<WeathersResponse> { continuation ->
+                val client = ApiConfig.getApiService().getForecastWeather()
+                client.enqueue(object : Callback<WeathersResponse> {
+                    override fun onResponse(call: Call<WeathersResponse>, response: Response<WeathersResponse>) {
+                        response.body()?.let { continuation.resume(it) }
+                    }
+
+                    override fun onFailure(call: Call<WeathersResponse>, t: Throwable) {
+                        continuation.resumeWithException(t)
+                    }
+                })
+
+                continuation.invokeOnCancellation {
+                    client.cancel()
+                }
+            }
+            val weatherData = WeatherData(weatherResponse = weatherResponse)
+            dao.saveWeatherResponse(weatherData)
+            _weatherResponse.value = weatherResponse
+            _isLoadingForecast.value = false
+        } catch (e: JsonSyntaxException) {
+            Log.e("HOMEVIEWMODEL", "JsonSyntaxException: ${e.message}")
+        } catch (t: Throwable) {
+            Log.e("HOMEVIEWMODEL", "onFailure: ${t.message}")
+            _isLoadingForecast.value = false
+        }
+    }
+
     suspend fun getTestResponse() {
         try {
             val testResponse = suspendCancellableCoroutine<TestResponse> { continuation ->
@@ -180,7 +276,6 @@ class HomeViewModel(
                     }
                 })
 
-                // This block will be executed if the coroutine is cancelled
                 continuation.invokeOnCancellation {
                     client.cancel()
                 }
@@ -194,6 +289,34 @@ class HomeViewModel(
         } catch (t: Throwable) {
             Log.e("HOMEVIEWMODEL", "onFailure: ${t.message}")
             _isLoadingForecast.value = false
+        }
+    }
+
+    suspend fun getRecommendResponse(userId: String) {
+        try {
+            val recommendResponse = suspendCancellableCoroutine<RecommendResponse> { continuation ->
+                val client = ApiConfig.getApiService().getRecommendation(userId)
+                client.enqueue(object : Callback<RecommendResponse> {
+                    override fun onResponse(call: Call<RecommendResponse>, response: Response<RecommendResponse>) {
+                        response.body()?.let { continuation.resume(it) }
+                    }
+
+                    override fun onFailure(call: Call<RecommendResponse>, t: Throwable) {
+                        continuation.resumeWithException(t)
+                    }
+                })
+
+                continuation.invokeOnCancellation {
+                    client.cancel()
+                }
+            }
+
+
+            _recommendResponse.value = recommendResponse
+        } catch (e: JsonSyntaxException) {
+            Log.e("HOMEVIEWMODEL", "JsonSyntaxException: ${e.message}")
+        } catch (t: Throwable) {
+            Log.e("HOMEVIEWMODEL", "onFailure: ${t.message}")
         }
     }
 }

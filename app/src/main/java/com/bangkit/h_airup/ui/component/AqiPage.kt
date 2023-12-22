@@ -7,16 +7,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.bangkit.h_airup.response.PollutantsItem
 import com.bangkit.h_airup.ui.theme.HAirUpTheme
+import com.bangkit.h_airup.ui.theme.md_theme_light_onPrimaryContainer
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AqiPage(
     aqiNumber: Int?,
@@ -30,9 +30,9 @@ fun AqiPage(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(120.dp) // Increased height for better spacing
-            .background(color = MaterialTheme.colorScheme.secondaryContainer)
-            .padding(8.dp)
+            .height(120.dp)
+            .background(color = MaterialTheme.colorScheme.primaryContainer)
+            .padding(16.dp)
     ) {
         Row(
             modifier = Modifier
@@ -42,62 +42,59 @@ fun AqiPage(
             // AQI Number
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.weight(1f) // Occupy the available space
+                modifier = Modifier.weight(0.5f)
             ) {
                 Text(
                     text = "AQI",
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = md_theme_light_onPrimaryContainer,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
                 Text(
                     text = aqiNumber?.toString() ?: "-",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    color = md_theme_light_onPrimaryContainer
                 )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             // AQI Status
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.weight(1f) // Occupy the available space
+                modifier = Modifier.weight(0.7f)
             ) {
                 Text(
                     text = "Status",
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = md_theme_light_onPrimaryContainer,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
                 Text(
                     text = aqiStatus,
                     fontSize = 16.sp,
+                    textAlign = TextAlign.Center,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = md_theme_light_onPrimaryContainer
                 )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-            // Main Pollutant
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.weight(1f) // Occupy the available space
+                modifier = Modifier.weight(0.5f)
             ) {
                 Text(
                     text = "Main Pollutant",
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = md_theme_light_onPrimaryContainer,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
 
-                // Find the dominant pollutant
                 val dominantPollutant = pollutants?.find { it?.code == aqiPollutan }
 
-                // Display the dominant pollutant and its value
                 if (dominantPollutant != null) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -107,13 +104,13 @@ fun AqiPage(
                             text = "${dominantPollutant.concentration?.value}",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onPrimary
+                            color = md_theme_light_onPrimaryContainer
                         )
                         Text(
                             text = "${dominantPollutant.displayName}",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onPrimary
+                            color = md_theme_light_onPrimaryContainer
                         )
                     }
                 } else {
@@ -121,20 +118,21 @@ fun AqiPage(
                         text = "N/A",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = md_theme_light_onPrimaryContainer
                     )
                 }
             }
         }
+    }
 
-        if (isDialogVisible) {
-            AQIDialog(
-                onDismiss = { isDialogVisible = false },
-                explanationText = "Here is a longer explanation about AQI. You can provide more details and information here."
-            )
-        }
+    if (isDialogVisible) {
+        AQIDialog(
+            onDismiss = { isDialogVisible = false },
+            explanationText = "AQI EXPLAINATION"
+        )
     }
 }
+
 
 @Composable
 private fun AQIDialog(
@@ -172,14 +170,15 @@ private fun AQIDialog(
     }
 }
 
-//@Preview(showBackground = true)
-//@Composable
-//fun AqiPagePreview() {
-//    HAirUpTheme {
-//        AqiPage(
-//            aqiNumber = 145,
-//            aqiStatus = "Unhealthy",
-//            aqiPollutan = "pm25"
-//        )
-//    }
-//}
+@Preview(showBackground = true)
+@Composable
+fun AqiPagePreview() {
+    HAirUpTheme {
+        AqiPage(
+            aqiNumber = 145,
+            aqiStatus = "Kualitas Udara Sedang",
+            aqiPollutan = "pm25",
+            listOf()
+        )
+    }
+}

@@ -14,15 +14,11 @@ import com.bangkit.h_airup.response.UserResponse
 import com.bangkit.h_airup.retrofit.ApiConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -57,12 +53,11 @@ class ProfileViewModel(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    suspend fun putUser(requestBody: UserRequestBody, userId: String): String? {
+    suspend fun putUser(files: MultipartBody.Part, requestBody: UserRequestBody, userId: String): String? {
 
         return try {
-            val client = ApiConfig.getApiService().putUser(requestBody, userId)
+            val client = ApiConfig.getApiService().putUser(files, requestBody, userId)
 
-            // Use suspendCoroutine to convert the callback-based API call to a suspend function
             val response = suspendCoroutine<Response<UserResponse>> { continuation ->
                 client.enqueue(object : Callback<UserResponse> {
                     override fun onResponse(call: Call<UserResponse>, response: Response<UserResponse>) {
@@ -80,10 +75,8 @@ class ProfileViewModel(
 
 
                 Log.d("FormViewModel", "User inserted successfully into Room database")
-
                 userIdFromResponse
             } else {
-                // Handle unsuccessful response
                 null
             }
         } catch (e: Exception) {

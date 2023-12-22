@@ -1,7 +1,8 @@
-@file:OptIn(ExperimentalPermissionsApi::class)
 
 package com.bangkit.h_airup.ui.screen.home
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,22 +10,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.paint
@@ -32,40 +29,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Devices
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import com.bangkit.h_airup.R
 import com.bangkit.h_airup.di.Injection
-import com.bangkit.h_airup.model.Aqi
-import com.bangkit.h_airup.model.AqiData
-import com.bangkit.h_airup.model.LocationData
+import com.bangkit.h_airup.pref.SharedPreferencesManager
 import com.bangkit.h_airup.pref.UserModel
 import com.bangkit.h_airup.pref.UserPreference
 import com.bangkit.h_airup.response.APIResponse
-import com.bangkit.h_airup.response.ForecastResponse
-import com.bangkit.h_airup.response.TestResponse
 import com.bangkit.h_airup.ui.ViewModelFactory
 import com.bangkit.h_airup.ui.component.AqiHome
 import com.bangkit.h_airup.ui.component.ForecastTable
-import com.bangkit.h_airup.ui.component.forecastItem
 import com.bangkit.h_airup.ui.component.GreetingItem
 import com.bangkit.h_airup.ui.component.LoadingScreen
 import com.bangkit.h_airup.ui.component.ProfileItem
 import com.bangkit.h_airup.ui.component.Recommendation
 import com.bangkit.h_airup.ui.component.WeatherHome
-import com.bangkit.h_airup.ui.navigation.Screen
+import com.bangkit.h_airup.ui.theme.md_theme_light_secondaryContainer
+import com.bangkit.h_airup.utils.IconPicker
+import com.bangkit.h_airup.utils.ShortenCity
 import com.bangkit.h_airup.utils.TempConvert
+import com.bangkit.h_airup.utils.categoryAqi
 import com.bangkit.h_airup.utils.onProfileItemClick
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberPermissionState
-import kotlinx.coroutines.launch
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
@@ -84,7 +72,6 @@ fun HomeScreen(
     var province: String
 
 
-
     city = userModel.citygps
     province = userModel.provincegps
 
@@ -97,16 +84,11 @@ fun HomeScreen(
         var userId: String = userModel.userId
         viewModel.getApiResponse(userId)
         viewModel.workPeriodic(userId)
-        viewModel.getTestResponse()
-        viewModel.getForecastResponse()
     }
 
-    // Check the loading state and show the appropriate content
     if (isLoading) {
-        // Show loading indicator
         LoadingScreen()
     } else {
-        // Data has loaded, show the content
         HomeContent(
             userModel = userModel,
             userPreference,
@@ -119,6 +101,7 @@ fun HomeScreen(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeContent(
     userModel: UserModel,
@@ -132,10 +115,13 @@ fun HomeContent(
 ) {
     val isLoadingForecast by viewModel.isLoadingForecast.collectAsState()
     val forecastResponse by viewModel.forecastResponse.collectAsState()
+    val weatherResponse by viewModel.weatherResponse.collectAsState()
 
     LaunchedEffect(viewModel) {
         viewModel.getTestResponse()
+        viewModel.getWeatherTestResponse()
         viewModel.getForecastResponse()
+        viewModel.getWeatherForecastResponse()
     }
     LazyColumn(
         contentPadding = PaddingValues(8.dp),
@@ -147,15 +133,22 @@ fun HomeContent(
         item {
             Column(
                 modifier = Modifier
+                    .height(300.dp)
                     .paint(
-                        painterResource(id = R.drawable.clear_background),
-                        contentScale = ContentScale.FillBounds
+                        painterResource(
+                            id = IconPicker.getWeatherIllustration(
+                                apiResponse?.weather?.weather?.get(
+                                    0
+                                )?.icon
+                            )
+                        ),
+                        contentScale = ContentScale.Crop
                     )
                     .padding(bottom = 16.dp, top = 40.dp)
             ) {
                 ProfileItem(
                     name = userModel.name,
-                    city = city,
+                    city = ShortenCity.shortenCityName(city),
                     province = province,
                     modifier = Modifier.clickable {
                         onProfileItemClick(navController)
@@ -169,7 +162,7 @@ fun HomeContent(
                 Row {
                     AqiHome(
                         aqiNumber = apiResponse?.aqi?.indexes?.get(0)?.aqi,
-                        aqiStatus = apiResponse?.aqi?.indexes?.get(0)?.category.toString(),
+                        aqiStatus = categoryAqi.getCategoryAqi(apiResponse?.aqi?.indexes?.get(0)?.aqi),
                         modifier = Modifier
                             .weight(1f)
                             .padding(start = 8.dp, end = 8.dp)
@@ -178,7 +171,8 @@ fun HomeContent(
                         temp = TempConvert.KelvinToCelsius(
                             apiResponse?.weather?.main?.temp as? Double ?: 0.0
                         ),
-                        status = apiResponse?.weather?.weather?.get(0)?.description.toString(),
+                        status = apiResponse?.weather?.weather?.get(0)?.main.toString(),
+                        icon = apiResponse?.weather?.weather?.get(0)?.icon.toString(),
                         modifier = Modifier.padding(end = 8.dp)
                     )
                 }
@@ -187,10 +181,11 @@ fun HomeContent(
 
         item {
             Recommendation(
-                modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer),
+                modifier = Modifier.background(md_theme_light_secondaryContainer),
                 userPreference = userPreference,
                 generalRecommend = apiResponse?.aqi?.healthRecommendations?.generalPopulation.toString(),
-                rekomendasi = apiResponse?.rekomendasi?.get(0)
+                rekomendasi = apiResponse?.rekomendasi?.get(0),
+                sharedPreferencesManager = SharedPreferencesManager(context = LocalContext.current)
             )
         }
 
@@ -198,7 +193,7 @@ fun HomeContent(
             if (isLoadingForecast) {
                 Box(
                     modifier = Modifier
-                        .height(500.dp)
+                        .height(750.dp)
                         .fillMaxWidth()
                         .background(Color.White),
                     contentAlignment = Alignment.Center
@@ -208,19 +203,19 @@ fun HomeContent(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-            }else{
-                ForecastTable(forecastResponse = forecastResponse)
+            }else {
 
+                Box(
+                    modifier = Modifier
+                        .height(750.dp)
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background),
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    ForecastTable(forecastResponse = forecastResponse, weatherResponse)
+                }
             }
         }
     }
 }
-
-
-
-//@Preview(showSystemUi = true, device = Devices.PIXEL_4)
-//@Composable
-//fun HomeScreenPreview() {
-//    HomeContent(aqis = AqiData.aqis)
-//}
-

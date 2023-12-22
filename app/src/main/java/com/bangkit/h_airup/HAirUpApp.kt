@@ -2,10 +2,9 @@
 
 package com.bangkit.h_airup
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -14,31 +13,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.bangkit.h_airup.ui.navigation.NavigationItem
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.OneTimeWorkRequest
-import androidx.work.PeriodicWorkRequest
-import androidx.work.WorkManager
 import com.bangkit.h_airup.pref.UserPreference
 import com.bangkit.h_airup.ui.navigation.Screen
 import com.bangkit.h_airup.ui.screen.aqi.AqiScreen
@@ -50,10 +38,12 @@ import com.bangkit.h_airup.ui.screen.welcome.FormScreenName
 import com.bangkit.h_airup.ui.screen.welcome.FormScreenSensitivity
 import com.bangkit.h_airup.ui.screen.welcome.WelcomeScreen
 import com.bangkit.h_airup.ui.theme.HAirUpTheme
+import com.bangkit.h_airup.ui.theme.md_theme_light_inverseOnSurface
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HAirUpApp(
     modifier: Modifier = Modifier,
@@ -61,12 +51,7 @@ fun HAirUpApp(
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
-
-    // Retrieve the UserPreference instance
     val userPreference = UserPreference.getInstance(LocalContext.current)
-
-    // Use LaunchedEffect to collect the IS_FIRSTTIME_KEY value
     LaunchedEffect(key1 = userPreference) {
         val isFirstTime = userPreference.getSession()
             .map { it.isFirstTime }
@@ -157,7 +142,8 @@ private fun BottomBar(
     modifier: Modifier = Modifier
 ){
     NavigationBar(
-        modifier = modifier
+        modifier = modifier,
+        containerColor = md_theme_light_inverseOnSurface
     ) {
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
@@ -201,6 +187,7 @@ private fun BottomBar(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true, showSystemUi = true, device = Devices.PIXEL_4)
 @Composable
 fun HAirUpPreview(){

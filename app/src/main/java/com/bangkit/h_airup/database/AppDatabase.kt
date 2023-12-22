@@ -8,12 +8,14 @@ import androidx.room.TypeConverters
 import com.bangkit.h_airup.dao.ApiDao
 import com.bangkit.h_airup.dao.UserDao
 import com.bangkit.h_airup.model.ApiData
+import com.bangkit.h_airup.model.ForecastData
 import com.bangkit.h_airup.model.UserEntity
+import com.bangkit.h_airup.model.WeatherData
 import com.bangkit.h_airup.utils.Converters
 
 @Database(
-    entities = [ApiData::class, UserEntity::class],  // Add UserEntity here
-    version = 3, // Increment the version when you make changes to the schema
+    entities = [ApiData::class, UserEntity::class, WeatherData::class, ForecastData::class],
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

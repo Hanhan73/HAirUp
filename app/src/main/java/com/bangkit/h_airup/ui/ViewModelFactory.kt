@@ -1,12 +1,9 @@
 package com.bangkit.h_airup.ui
 
 import android.content.Context
-import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.bangkit.h_airup.dao.ApiDao
 import com.bangkit.h_airup.data.AqiRepository
-import com.bangkit.h_airup.pref.UserModel
 import com.bangkit.h_airup.ui.screen.aqi.AqiViewModel
 import com.bangkit.h_airup.ui.screen.home.HomeViewModel
 import com.bangkit.h_airup.ui.screen.profile.ProfileViewModel

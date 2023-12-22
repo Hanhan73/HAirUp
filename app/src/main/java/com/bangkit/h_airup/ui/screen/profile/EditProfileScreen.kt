@@ -1,14 +1,10 @@
 package com.bangkit.h_airup.ui.screen.profile
 
-import android.content.Intent
 import android.net.Uri
-import android.provider.MediaStore
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,9 +28,6 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,53 +36,40 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.core.app.ComponentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import coil.compose.rememberImagePainter
 import com.bangkit.h_airup.R
 import com.bangkit.h_airup.di.Injection
 import com.bangkit.h_airup.model.LocationData
 import com.bangkit.h_airup.model.UserRequestBody
-import com.bangkit.h_airup.pref.UserModel
 import com.bangkit.h_airup.pref.UserPreference
 import com.bangkit.h_airup.ui.ViewModelFactory
 import com.bangkit.h_airup.ui.component.DropdownField
-import com.bangkit.h_airup.ui.navigation.Screen
+import com.bangkit.h_airup.ui.theme.md_theme_light_secondaryContainer
 import com.bangkit.h_airup.utils.onProfileItemClick
 import com.bangkit.h_airup.utils.uriToFile
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import java.io.File
-import java.io.FileOutputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -109,8 +89,6 @@ fun EditProfileScreen(
     var expanded2 by remember { mutableStateOf(false) }
     var expandedCity by remember { mutableStateOf(false) }
     var expandedProvince by remember { mutableStateOf(false) }
-    var provinceGps = ""
-    var cityGps = ""
 
     val status = listOf("Pregnant", "Athletes")
     val medHistories = listOf("Heart Disease", "Lung Disease")
@@ -144,7 +122,6 @@ fun EditProfileScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            // TopAppBar
             TopAppBar(
                 title = {
                     Text(
@@ -171,19 +148,32 @@ fun EditProfileScreen(
                                 viewModel.medHistory
                             )
                             val selectedImageFile = selectedImageUri?.let { uriToFile(context, it) }
+
+                            Log.d("EditProfile", selectedImageFile?.path.toString())
                             val requestBody = UserRequestBody(
                                 nama = viewModel.name,
                                 umur = viewModel.age.toInt(),
                                 lokasi = userPreference.getCity(),
-                                selectedImageFile,
+                                files = selectedImageFile,
                                 status = viewModel.sensitivity,
                                 riwayatPenyakit = viewModel.medHistory
                             )
                             val userId = userPreference.getUserId()
 
+                            val file = File(selectedImageUri.toString())
 
+                            val reqFile = selectedImageFile?.let {
+                                RequestBody.create("image/*".toMediaTypeOrNull(),
+                                    it
+                                )
+                            }
+                            val body = reqFile?.let {
+                                MultipartBody.Part.createFormData("upload", file.name,
+                                    it
+                                )
+                            }
 
-                            val response = viewModel.putUser(requestBody, userId)
+                            val response = body?.let { viewModel.putUser(it, requestBody, userId) }
 
                             Log.d("EditProfile", response.toString())
                         }
@@ -211,14 +201,12 @@ fun EditProfileScreen(
                     .height(250.dp)
                     .background(MaterialTheme.colorScheme.background)
                     .clickable {
-                        // Launch the image picker
                         pickImageLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
                     }
             ) {
                 if (selectedImageUri != null) {
-                    // Display the selected image using Coil
                     AsyncImage(
                         model = selectedImageUri,
                         contentDescription = "Selected Image",
@@ -228,11 +216,13 @@ fun EditProfileScreen(
                             .align(Alignment.Center)
                     )
                 } else {
-                    // Display a placeholder or some UI for selecting an image
                     Icon(
                         imageVector = Icons.Default.AccountCircle,
                         contentDescription = null,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier
+                            .size(350.dp)
+                            .align(Alignment.Center)
+
                     )
                 }
             }
@@ -257,9 +247,12 @@ fun EditProfileScreen(
                             .fillMaxWidth()
                             .padding(vertical = 16.dp, horizontal = 12.dp)
                             .background(
-                                color = MaterialTheme.colorScheme.primaryContainer,
+                                color = md_theme_light_secondaryContainer,
                                 shape = RoundedCornerShape(12.dp)
-                            )
+                            ),
+                        colors = TextFieldDefaults.textFieldColors(
+                            containerColor = md_theme_light_secondaryContainer,
+                        )
                     )
                 }
 
@@ -268,7 +261,7 @@ fun EditProfileScreen(
                     Row {
                         DropdownField(
                             modifier = Modifier
-                                .width(200.dp)
+                                .width(150.dp)
                                 .padding(start = 8.dp),
                             label = "Province",
                             value = viewModel.province,
@@ -314,9 +307,12 @@ fun EditProfileScreen(
                             .fillMaxWidth()
                             .padding(vertical = 16.dp, horizontal = 12.dp)
                             .background(
-                                color = MaterialTheme.colorScheme.primaryContainer,
+                                color = md_theme_light_secondaryContainer,
                                 shape = RoundedCornerShape(12.dp)
-                            )
+                            ),
+                        colors = TextFieldDefaults.textFieldColors(
+                            containerColor = md_theme_light_secondaryContainer,
+                        )
                     )
                 }
 
@@ -324,7 +320,7 @@ fun EditProfileScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.94f)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .background(md_theme_light_secondaryContainer)
                             .border(
                                 1.dp,
                                 MaterialTheme.colorScheme.primary,
@@ -377,7 +373,7 @@ fun EditProfileScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.94f)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .background(md_theme_light_secondaryContainer)
                             .border(
                                 1.dp,
                                 MaterialTheme.colorScheme.primary,
@@ -427,8 +423,6 @@ fun EditProfileScreen(
             }
         }
     }
-
-
 }
 
 
